@@ -1,3 +1,6 @@
+mod tp02;
+
+
 fn main() {
-    println!("Hello, world!");
+    tp02::ej01::es_par(); //como la tendría que llamar???
 }
