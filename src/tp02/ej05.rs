@@ -1,16 +1,29 @@
 pub fn act05(){
 
-    fn doble_numeros(numbers:[f64 ; 10]) -> [f64 ; 10]{
-        let mut arreglo_final:[f64 ; 10];
+    fn duplicar_valores(numbers:[f64 ; 5]) -> [f64 ; 5]{
 
+        let mut new_array :[f64 ; 5] = [0.0,0.0,0.0,0.0,0.0];
+
+        for n in 0 .. numbers.len(){
+            new_array[n] = numbers[n] * 2.0;
+
+        }
+
+        new_array
+
+    }
+
+    fn imprimir_arreglo(numbers: [f64 ; 5]){
         for number in numbers.iter(){
-            
+            println! ("{}" , number);
         }
     }
 
 
-    let numeros:[f64 ; 10] = [0.0 , 1.1 , 2.2 , 3.3 , 4.4 , 5.5 , 6.6 , 7.7 , 8.8 , 9.9];
-    let doble_numeros:[f64 ; 10] = duplicar_valores(numeros);
+    let numeros:[f64 ; 5] = [0.0 , 1.1 , 2.2 , 3.3 , 4.4];
+    let doble_numeros:[f64 ; 5] = duplicar_valores(numeros);
+
+    imprimir_arreglo(doble_numeros); //preg if okay???? pq no se podía usar el println!
 
 
 }
