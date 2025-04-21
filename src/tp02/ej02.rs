@@ -1,4 +1,4 @@
-pub fn act2(){
+pub fn act02(){
     
     fn es_primo (numero : i32) -> bool{
 
