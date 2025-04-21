@@ -6,7 +6,7 @@ fn main() {
     //tp02::ej02::act2();
     //tp02::ej03::act03();
     //tp02::ej04::act04();
-    tp02::ej05::act05();
-    //tp02:ej06::act06();
+    //tp02::ej05::act05();
+    tp02::ej06::act06();
 
 }
