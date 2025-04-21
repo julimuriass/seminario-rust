@@ -1,5 +1,5 @@
-# [should_panic]
-# [test]
+//# [should_panic]
+//# [test]
 
 pub fn act06(){
 
