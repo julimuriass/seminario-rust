@@ -19,6 +19,6 @@ pub fn act06(){
     let arreglo_strings:[String ; 3] = [String::from("Hello") , String::from("world") , String::from("!")]; //preg if okay
     let output:[u32 ; 3] = longitud_de_cadenas (arreglo_strings);
 
-    assert_eq!(output[0] , 8);
+    assert_eq!(output[0] , 8); //preg if okay esta forma de testear??
 
 }
