@@ -1,5 +1,4 @@
 //#[test] 
-//le tendría que agregar tmb el should panic? o como hago un buen test??
 pub fn act03(){
     
     fn suma_pares(arreglo:[i32; 10]) -> i32{

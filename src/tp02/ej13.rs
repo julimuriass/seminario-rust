@@ -1,10 +1,10 @@
 //#[should_panic]
-//#test]
+//#[test]
 
 pub fn act13(){
 
 
-    fn ordenar_nombres (array: &mut[String; 7]){ //podría usar el mismo nombre como parámetro??
+    fn ordenar_nombres (array: &mut[String; 7]){ 
         array.sort();
 
     }

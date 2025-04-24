@@ -23,7 +23,7 @@ pub fn act05(){
     let numeros:[f64 ; 5] = [0.0 , 1.1 , 2.2 , 3.3 , 4.4];
     let doble_numeros:[f64 ; 5] = duplicar_valores(numeros);
 
-    imprimir_arreglo(doble_numeros); //preg if okay???? pq no se podía usar el println!
+    imprimir_arreglo(doble_numeros); //preg if okay???? pq no se podía usar el println! mod
 
 
 }
