@@ -1,4 +1,4 @@
-pub fn act05(){
+
 
     fn duplicar_valores(numbers:[f64 ; 5]) -> [f64 ; 5]{
 
@@ -13,17 +13,13 @@ pub fn act05(){
 
     }
 
-    fn imprimir_arreglo(numbers: [f64 ; 5]){
-        for number in numbers.iter(){
-            println! ("{}" , number);
-        }
-    }
 
-
+ //# [should_panic]
+ # [test]
+fn helper(){
     let numeros:[f64 ; 5] = [0.0 , 1.1 , 2.2 , 3.3 , 4.4];
     let doble_numeros:[f64 ; 5] = duplicar_valores(numeros);
 
-    imprimir_arreglo(doble_numeros); //preg if okay???? pq no se podía usar el println! mod
-
-
+    assert_eq!(doble_numeros[0] , 0.0)
 }
+

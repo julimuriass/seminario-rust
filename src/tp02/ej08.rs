@@ -1,10 +1,9 @@
-//# [should_panic]
-//# [test]
-
-pub fn act08(){
 
 
-    fn sumar_arreglos(array1:[f64 ; 2] , array2:[f64 ; 2]) -> [f64 ; 2]{
+
+
+
+    pub fn sumar_arreglos(array1:[f64 ; 2] , array2:[f64 ; 2]) -> [f64 ; 2]{
 
         let mut results:[f64 ; 2]= [0.0 , 0.0];
 
@@ -15,6 +14,9 @@ pub fn act08(){
         results
     }
 
+//# [should_panic]
+# [test]
+fn testear(){
     let numbers1:[f64 ; 2]= [0.0 , 25.2];
     let numbers2:[f64 ; 2]= [-2.4 , 3.1];
 
@@ -22,5 +24,6 @@ pub fn act08(){
 
     assert_eq!(sums[0] , -2.4);
     assert_eq!(sums[1] , 28.3);
-
 }
+    
+

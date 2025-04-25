@@ -1,9 +1,8 @@
-//#[should_panic]
-//#[test]
-pub fn act11(){
 
 
-    fn multiplicar_valores ( array: &mut [i32 ; 5] , factor: i32){
+
+
+    pub fn multiplicar_valores ( array: &mut [i32 ; 5] , factor: i32){
         
         for number in array.iter_mut(){
             *number = *number * factor; 
@@ -11,7 +10,9 @@ pub fn act11(){
 
     }
 
-
+//#[should_panic]
+#[test]
+fn testear(){
     let mut numbers:[i32 ; 5] = [1 , 2 , 3 , 4 , 5];
     let factor: i32 = -1;
 
@@ -19,3 +20,5 @@ pub fn act11(){
 
     assert_eq!(numbers[0] , -1);
 }
+
+    

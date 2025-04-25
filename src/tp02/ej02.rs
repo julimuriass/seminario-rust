@@ -1,6 +1,6 @@
-pub fn act02(){
+
     
-    fn es_primo (numero : i32) -> bool{
+    pub fn es_primo (numero : i32) -> bool{
 
         if numero > 1 {
 
@@ -24,10 +24,13 @@ pub fn act02(){
 
     }
 
-    let number:i32 = 1;
-    let primo:bool = es_primo(number);
+    #[test]
+    fn testear(){
+       let number:i32 = 1;
+        let primo:bool = es_primo(number);
 
-    assert_eq!(primo, false);
+         assert_eq!(primo, false);
+    }
+    
 
-    println!("El numero {} es primo: {}" , number , primo);
-}
+
