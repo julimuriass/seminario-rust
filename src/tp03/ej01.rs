@@ -24,4 +24,12 @@ impl Persona {
         formart! ("Name: {}, age: {}, direction: {}", self.name, self.age, direction_str)
     }
 
+    fn obtain_age (&self) -> u32 {
+        self.age
+    }
+
+    fn update_direction (&mut self, new_direction: Option<String>){
+        self.direction = new_direction;
+    }
+
 }
