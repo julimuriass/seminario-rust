@@ -21,7 +21,7 @@ impl Persona {
             "None"
         };
 
-        formart! ("Name: {}, age: {}, direction: {}", self.name, self.age, direction_str)
+        format! ("Name: {}, age: {}, direction: {}", self.name, self.age, direction_str)
     }
 
     fn obtain_age (&self) -> u32 {
@@ -32,4 +32,20 @@ impl Persona {
         self.direction = new_direction;
     }
 
+}
+
+//# [should_panic]
+# [test]
+fn tester(){
+    let mut me_without_direction = Persona::new (19, String::from("Julieta"), None);
+    let mut me_with_direction = Persona::new (19, String::from("Julieta"), Some (String::from("Salto")));
+
+    let message1 = me_with_direction.to_string();
+    println!("{}", message1); //How do I do whis w/o the println! macro???
+    println!("{}", me_without_direction.to_string());
+
+    assert_eq!(me_with_direction.obtain_age(), 19);
+
+    me_with_direction.update_direction(Some(String::from("La Plata/Salto")));
+    println!("{}", me_with_direction.to_string());
 }

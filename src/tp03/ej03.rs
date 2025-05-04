@@ -17,19 +17,19 @@ impl Date {
         // A year is a leap year if:
         // 1. It is divisible by 4, and
         // 2. It is not divisible by 100, unless it is also divisible by 400.
-        ((self.year % 4 == 0 && self.year % 100 != 0) || self.year % 400 == 0)
+        self.year % 4 == 0 && self.year % 100 != 0 || self.year % 400 == 0
     }
 
     fn is_valid_date (&self) -> bool {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
         if self.month < 1 || self.month > 12 { 
-            false
+            return false;
         }
 
         let mut max_days = days_in_month[self.month as usize];
 
-        if self.month == 2 && self.is_leap_year {
+        if self.month == 2 && self.is_leap_year() {
             max_days = 29;
         }
 
@@ -40,7 +40,7 @@ impl Date {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let mut days_in_current_month = days_in_month[self.month as usize];
 
-        if self.month = 2 && self.is_leap_year() {
+        if self.month == 2 && self.is_leap_year() {
             days_in_current_month = 29;
         }
 
@@ -53,14 +53,14 @@ impl Date {
             self.day = 1; //Move to the next month.
             self.month += 1;
 
-            if (self.month > 12) {
+            if self.month > 12 {
                 self.year += 1;
                 self.month = 1;
             }
 
             //Recalculate the days in the current month.
             days_in_current_month = days_in_month[self.month as usize];
-            if self.month = 2 && self.is_leap_year() {
+            if self.month == 2 && self.is_leap_year() {
                 days_in_current_month = 29;
             } 
 
@@ -73,22 +73,22 @@ impl Date {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let mut days_in_current_month = days_in_month[self.month as usize];
 
-        if self.month = 2 && self.is_leap_year() {
+        if self.month == 2 && self.is_leap_year() {
             days_in_current_month = 29;
         }
 
-        while days > self.days { //While the numbers of days I have to subtract is greater than the days I already have.
-            days -= self.days + 1; //+1 ensures that the current day is included when transitioning to the previous month.
+        while days > self.day { //While the numbers of days I have to subtract is greater than the days I already have.
+            days -= self.day + 1; //+1 ensures that the current day is included when transitioning to the previous month.
 
             self.month -= 1;
-            if (self.month < 1) {
+            if self.month < 1 {
                 self.year -= 1;
                 self.month = 12;
             }   
 
             //Recalculate the days in the current month.
             days_in_current_month = days_in_month[self.month as usize];
-            if self.month = 2 && self.is_leap_year() {
+            if self.month == 2 && self.is_leap_year() {
                 days_in_current_month = 29;
             } 
 
@@ -103,19 +103,43 @@ impl Date {
 
         //First check the year.
         if other.year > self.year {
-            true
+            return true;
         } else {
-            false
+            return false;
         }
 
         //Check month.
         if other.month > self.month {
-            true
+            return true;
         } else {
-            false
+            return false;
         }
 
         //If months are equal, compare day.
         other.day > self.day
     }
+}
+
+//# [should_panic]
+# [test]
+fn tester() {
+    let mut date1 = Date {
+        day: 12,
+        month: 5,
+        year: 2006,
+    };
+
+    let mut date2 = Date::new(21, 13, 2024);
+
+
+    //assert_eq!(date2.is_valid_date(), false);
+    //assert_eq!(date1.is_leap_year(), false);
+
+    date1.sum_days(50);
+    //assert_eq!(date1.month, 7); //yesss
+
+    date1.subtract_days(50);
+    assert_eq!(date1.day, 12); //why is this failing???
+
+    //assert_eq!(date1.is_greater(&date2), true);  //yess
 }
