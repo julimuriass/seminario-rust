@@ -139,6 +139,7 @@ fn tester() {
     //assert_eq!(date1.month, 7); //yesss
 
     date1.subtract_days(50);
+    println!("{}",date1.day);
     assert_eq!(date1.day, 12); //why is this failing???
 
     //assert_eq!(date1.is_greater(&date2), true);  //yess
