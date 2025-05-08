@@ -5,7 +5,6 @@ struct Persona {
 }
 
 impl Persona {
-
     fn new (age: u32, name: String, direction: Option<String>) -> Persona {
         Persona {
             age,
@@ -24,11 +23,11 @@ impl Persona {
         format! ("Name: {}, age: {}, direction: {}", self.name, self.age, direction_str)
     }
 
-    fn obtain_age (&self) -> u32 {
+    fn obtener_edad (&self) -> u32 {
         self.age
     }
 
-    fn update_direction (&mut self, new_direction: Option<String>){
+    fn actualizar_direccion (&mut self, new_direction: Option<String>){
         self.direction = new_direction;
     }
 
@@ -44,8 +43,8 @@ fn tester(){
     println!("{}", message1); //How do I do whis w/o the println! macro???
     println!("{}", me_without_direction.to_string());
 
-    assert_eq!(me_with_direction.obtain_age(), 19);
+    assert_eq!(me_with_direction.obtener_edad(), 19);
 
-    me_with_direction.update_direction(Some(String::from("La Plata/Salto")));
+    me_with_direction.actualizar_direccion(Some(String::from("La Plata/Salto")));
     println!("{}", me_with_direction.to_string());
 }

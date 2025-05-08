@@ -13,14 +13,14 @@ impl Date {
         }
     }
 
-    fn is_leap_year (&self) -> bool {
+    fn es_bisiesto (&self) -> bool {
         // A year is a leap year if:
         // 1. It is divisible by 4, and
         // 2. It is not divisible by 100, unless it is also divisible by 400.
         self.year % 4 == 0 && self.year % 100 != 0 || self.year % 400 == 0
     }
 
-    fn is_valid_date (&self) -> bool {
+    fn es_fecha_valida (&self) -> bool {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
         if self.month < 1 || self.month > 12 { 
@@ -29,18 +29,18 @@ impl Date {
 
         let mut max_days = days_in_month[self.month as usize];
 
-        if self.month == 2 && self.is_leap_year() {
+        if self.month == 2 && self.es_bisiesto() {
             max_days = 29;
         }
 
         self.day >= 1 && self.day <= max_days
     }
 
-    fn sum_days (&mut self, mut days: u32) {
+    fn sumar_dias (&mut self, mut days: u32) {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let mut days_in_current_month = days_in_month[self.month as usize];
 
-        if self.month == 2 && self.is_leap_year() {
+        if self.month == 2 && self.es_bisiesto() {
             days_in_current_month = 29;
         }
 
@@ -60,7 +60,7 @@ impl Date {
 
             //Recalculate the days in the current month.
             days_in_current_month = days_in_month[self.month as usize];
-            if self.month == 2 && self.is_leap_year() {
+            if self.month == 2 && self.es_bisiesto() {
                 days_in_current_month = 29;
             } 
 
@@ -69,11 +69,11 @@ impl Date {
         self.day += days;  
     }
 
-    fn subtract_days (&mut self, mut days: u32) {
+    fn restar_dias (&mut self, mut days: u32) {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let mut days_in_current_month = days_in_month[self.month as usize];
 
-        if self.month == 2 && self.is_leap_year() {
+        if self.month == 2 && self.es_bisiesto() {
             days_in_current_month = 29;
         }
 
@@ -88,7 +88,7 @@ impl Date {
 
             //Recalculate the days in the current month.
             days_in_current_month = days_in_month[self.month as usize];
-            if self.month == 2 && self.is_leap_year() {
+            if self.month == 2 && self.es_bisiesto() {
                 days_in_current_month = 29;
             } 
 
@@ -99,7 +99,7 @@ impl Date {
         self.day -= days;  
     }
 
-    fn is_greater (&self, other: &Date) -> bool {
+    fn es_mayor (&self, other: &Date) -> bool {
 
         //First check the year.
         if other.year > self.year {
@@ -132,15 +132,15 @@ fn tester() {
     let mut date2 = Date::new(21, 13, 2024);
 
 
-    //assert_eq!(date2.is_valid_date(), false);
-    //assert_eq!(date1.is_leap_year(), false);
+    //assert_eq!(date2.es_fecha_valida(), false);
+    //assert_eq!(date1.es_bisiesto(), false);
 
-    date1.sum_days(50);
+    date1.sumar_dias(50);
     //assert_eq!(date1.month, 7); //yesss
 
-    date1.subtract_days(50);
+    date1.restar_dias(50);
     println!("{}",date1.day);
     assert_eq!(date1.day, 12); //why is this failing???
 
-    //assert_eq!(date1.is_greater(&date2), true);  //yess
+    //assert_eq!(date1.es_mayor(&date2), true);  //yess
 }
