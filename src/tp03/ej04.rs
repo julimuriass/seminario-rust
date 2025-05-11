@@ -1,23 +1,23 @@
-struct Triangle {
-    side1: f64,
-    side2: f64,
-    side3: f64,
+struct Triangulo {
+    lado1: f64,
+    lado2: f64,
+    lado3: f64,
 }
 
-impl Triangle {
-    fn new (side1: f64, side2: f64, side3: f64) -> Triangle {
-        Triangle { 
-            side1,
-            side2,
-            side3,
+impl Triangulo {
+    fn new (lado1: f64, lado2: f64, lado3: f64) -> Triangulo {
+        Triangulo { 
+            lado1,
+            lado2,
+            lado3,
         }
     }
 
     fn determinar_tipo (&self) -> String {
-        if self.side1 == self.side2 && self.side2 == self.side3 {
+        if self.lado1 == self.lado2 && self.lado2 == self.lado3 {
             String::from("Equilateral")
         } else {
-            if (self.side1 == self.side2 && self.side2 != self.side3) || (self.side1 == self.side3 && self.side3 != self.side2) || (self.side2 == self.side3 && self.side2 != self.side1){
+            if (self.lado1 == self.lado2 && self.lado2 != self.lado3) || (self.lado1 == self.lado3 && self.lado3 != self.lado2) || (self.lado2 == self.lado3 && self.lado2 != self.lado1){
                 String::from("Isosceles")
             } else {
                 String::from("Scalene")
@@ -26,20 +26,20 @@ impl Triangle {
     }
 
     fn calcular_area (&self) -> f64 {
-        let s = (self.side1 + self.side2 + self.side3) / 2.0; // Semi-perimeter
-        let area = (s * (s - self.side1) * (s - self.side2) * (s - self.side3)).sqrt(); // Heron's formula
+        let s = (self.lado1 + self.lado2 + self.lado3) / 2.0; // Semi-perimeter
+        let area = (s * (s - self.lado1) * (s - self.lado2) * (s - self.lado3)).sqrt(); // Heron's formula
         area
     }
 
     fn calcular_perimetro (&self) -> f64 {
-        self.side1 + self.side2 + self.side3
+        self.lado1 + self.lado2 + self.lado3
     }
 }
 
 //#[should_panic]
 #[test]
 fn tester() {
-    let triangle = Triangle::new(2.0, 2.0, 2.0);
+    let triangle = Triangulo::new(2.0, 2.0, 2.0);
     assert_eq!(triangle.determinar_tipo(), String::from("Equilateral"));
     assert_eq!(triangle.calcular_perimetro(), 6.0);
 
