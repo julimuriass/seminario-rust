@@ -1,34 +1,34 @@
 struct Persona {
-    age: u32,
-    name: String,
-    direction: Option<String>,
+    edad: u32,
+    nombre: String,
+    direccion: Option<String>,
 }
 
 impl Persona {
-    fn new (age: u32, name: String, direction: Option<String>) -> Persona {
+    fn new (edad: u32, nombre: String, direccion: Option<String>) -> Persona {
         Persona {
-            age,
-            name,
-            direction,
+            edad,
+            nombre,
+            direccion,
         }
     }
 
     fn to_string (&self) -> String {
-        let direction_str = if let Some(dir) = &self.direction{
+        let direction_str = if let Some(dir) = &self.direccion{
             dir.as_str()
         } else {
             "None"
         };
 
-        format! ("Name: {}, age: {}, direction: {}", self.name, self.age, direction_str)
+        format! ("Name: {}, age: {}, direction: {}", self.nombre, self.edad, direction_str)
     }
 
     fn obtener_edad (&self) -> u32 {
-        self.age
+        self.edad
     }
 
     fn actualizar_direccion (&mut self, new_direction: Option<String>){
-        self.direction = new_direction;
+        self.direccion = new_direction;
     }
 
 }
@@ -40,7 +40,7 @@ fn tester(){
     let mut me_with_direction = Persona::new (19, String::from("Julieta"), Some (String::from("Salto")));
 
     let message1 = me_with_direction.to_string();
-    println!("{}", message1); //How do I do whis w/o the println! macro???
+    //println!("{}", message1); 
     println!("{}", me_without_direction.to_string());
 
     assert_eq!(me_with_direction.obtener_edad(), 19);
