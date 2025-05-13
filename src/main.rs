@@ -1,5 +1,5 @@
-//mod tp02;
-//mod tp03;
+mod tp02;
+mod tp03;
 
 use std::io::stdin;
 use core::panic;
