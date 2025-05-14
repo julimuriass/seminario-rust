@@ -1,11 +1,12 @@
-struct Fecha {
-    dia: u32,
-    mes: u32,
-    año: u32,
+#[derive(Clone)]
+pub struct Fecha {
+    pub dia: u32,
+    pub mes: u32,
+    pub año: u32,
 }
 
 impl Fecha {
-    fn new (dia: u32, mes: u32, año: u32) -> Fecha {
+    pub fn new (dia: u32, mes: u32, año: u32) -> Fecha {
         Fecha {
             dia,
             mes,
