@@ -74,7 +74,25 @@ impl PlayList {
         }
     }
 
-    //fn mover_cancion(&mut self, )
+    fn mover_cancion(&mut self, cancion: &Cancion, posicion_nueva: u32){
+        if posicion_nueva < self.canciones.len() as u32 {
+
+            //Search song in the playlist.
+            let mut song_index:i32= -1;
+            for i in 0..self.canciones.len() {
+                if compare(&self.canciones[i], &cancion) {
+                    song_index= i as i32;
+                    break;
+                }
+            }
+
+            if song_index != -1 { //If I found the song.
+                //Move the song to the new position.
+                let song = self.canciones.remove(song_index as usize);
+                self.canciones.insert(posicion_nueva as usize, song);
+            }
+        }
+    }
 
     fn buscar_cancion_por_nombre(&self, nombre: String) -> Option<Cancion> {
         for song in self.canciones.iter() {
@@ -182,5 +200,90 @@ impl PlayList {
 
         playlist.eliminar_todas_las_canciones();
         assert_eq!(playlist.canciones.len(), 0);
+    }
+
+    #[test]
+    fn testear_mover_cancion() {
+        let mut playlist= PlayList::new(String::from("Chill music"));
+        let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
+        let cancion2= Cancion::new(String::from("Cancion2"), String::from("juancito"), Genero::JAZZ);
+        let cancion3= Cancion::new(String::from("Cancion3"), String::from("pepa"), Genero::OTROS);
+        let cancion4= Cancion::new(String::from("Cancion4"), String::from("pepa"), Genero::ROCK);
+
+        playlist.agregar_cancion(&cancion1); //Originally in pos 0 (in playlist).
+        playlist.agregar_cancion(&cancion2); //Originally in pos 1 (in playlist).
+        playlist.agregar_cancion(&cancion3); //Originally in pos 2 (in playlist).
+
+        //Check that.
+        assert_eq!(playlist.canciones[0].titulo, String::from("Cancion1"));
+
+        //Move a song that is in the playlist.
+        playlist.mover_cancion(&cancion2, 2);
+        assert_eq!(playlist.canciones[2].titulo, String::from("Cancion2"));
+
+        //Move a song that is not in the playlist.
+        playlist.mover_cancion(&cancion4, 0);
+        assert_eq!(playlist.canciones[0].titulo, String::from("Cancion1")); //It shouldn't change.
+
+        //Move a song that is in the playlist to a non existing position.
+        playlist.mover_cancion(&cancion1, 3);
+        assert_eq!(playlist.canciones[0].titulo, String::from("Cancion1")); //It shouldn't change.
+    }
+
+    #[test]
+    fn testear_cambiar_nombre_playlist() {
+        let mut playlist= PlayList::new(String::from("Chill music"));
+        //Check that.
+        assert_eq!(playlist.nombre, String::from("Chill music"));
+        
+        //Change the name.
+        playlist.modificar_titulo_playlist(String::from("Nombre nuevo"));
+        assert_eq!(playlist.nombre, String::from("Nombre nuevo"));
+    }
+
+    #[test]
+    fn testear_canciones_mismo_genero() {
+        let mut playlist= PlayList::new(String::from("Chill music"));
+        let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
+        let cancion2= Cancion::new(String::from("Cancion2"), String::from("juancito"), Genero::JAZZ);
+        let cancion3= Cancion::new(String::from("Cancion3"), String::from("pepa"), Genero::OTROS);
+        let cancion4= Cancion::new(String::from("Cancion4"), String::from("pepa"), Genero::ROCK);
+
+        playlist.agregar_cancion(&cancion1); 
+        playlist.agregar_cancion(&cancion2); 
+        playlist.agregar_cancion(&cancion3); 
+        playlist.agregar_cancion(&cancion4);
+
+        //2 jazz songs.
+        let mut jazz_songs: Vec<Cancion>;
+        jazz_songs= playlist.obtener_canciones_por_genero(Genero::JAZZ);
+        assert_eq!(jazz_songs.len(), 2);
+
+        //Try with a genre that is not in the playlist.
+        let mut pop_songs= playlist.obtener_canciones_por_genero(Genero::POP);
+        assert_eq!(pop_songs.len(), 0);
+    }
+
+    #[test]
+    fn testear_canciones_mismo_artista() {
+        let mut playlist= PlayList::new(String::from("Chill music"));
+        let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
+        let cancion2= Cancion::new(String::from("Cancion2"), String::from("juancito"), Genero::JAZZ);
+        let cancion3= Cancion::new(String::from("Cancion3"), String::from("pepa"), Genero::OTROS);
+        let cancion4= Cancion::new(String::from("Cancion4"), String::from("pepa"), Genero::ROCK);
+
+        playlist.agregar_cancion(&cancion1); 
+        playlist.agregar_cancion(&cancion2); 
+        playlist.agregar_cancion(&cancion3); 
+        playlist.agregar_cancion(&cancion4);
+
+        //2 pepa songs.
+        let mut pepa_songs: Vec<Cancion>;
+        pepa_songs= playlist.obtener_canciones_por_artista(String::from("pepa"));
+        assert_eq!(pepa_songs.len(), 2);
+
+        //Try with an artist that is not in the playlist.
+        let mut titi_songs= playlist.obtener_canciones_por_artista(String::from("titi"));
+        assert_eq!(titi_songs.len(), 0);
     }
  }
