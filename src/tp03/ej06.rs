@@ -21,15 +21,6 @@ struct Informe {
     materia_alta: String,
 }
 
-impl Examen {
-    fn new(nombre_materia: String, nota: f64) -> Examen {
-        Examen {
-            nombre_materia,
-            nota,
-        }
-    }
-}
-
 pub fn obtener_materia_calificacion_alta(examenes: &Vec<Examen>) -> String {
     //función auxiliar que busca la nota más alta y se queda con la materia asociada a ésta.
     if examenes.len() == 0 {
@@ -69,6 +60,16 @@ pub fn obtener_materia_calificacion_baja(examenes: &Vec<Examen>) -> String {
     materia
 }
 
+
+
+impl Examen {
+    fn new(nombre_materia: String, nota: f64) -> Examen {
+        Examen {
+            nombre_materia,
+            nota,
+        }
+    }
+}
 
 impl Estudiante {
     fn new(nombre: String, id: i32) -> Estudiante {
