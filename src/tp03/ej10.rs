@@ -115,23 +115,23 @@ impl Biblioteca {
 
     fn prestamos_vencer(&self, cant_dias: u32, fecha_actual: &Fecha) -> Vec<Prestamo> {
         let mut fecha_limite = fecha_actual.clone();
-    fecha_limite.sumar_dias(cant_dias);
+        fecha_limite.sumar_dias(cant_dias);
 
-    let mut lista_prestamos_vencer = Vec::new();
+        let mut lista_prestamos_vencer = Vec::new();
 
-    for prestamo in self.prestamos.iter() {
-        let fecha_igual = prestamo.fecha_vencimiento.dia == fecha_actual.dia &&
+        for prestamo in self.prestamos.iter() {
+            let fecha_igual = prestamo.fecha_vencimiento.dia == fecha_actual.dia &&
                           prestamo.fecha_vencimiento.mes == fecha_actual.mes &&
                           prestamo.fecha_vencimiento.año == fecha_actual.año;
 
-        if no_devolvio(&prestamo.estado) &&
-           !prestamo.fecha_vencimiento.es_mayor(&fecha_limite) &&  // fecha_vencimiento <= fecha_limite
-           (prestamo.fecha_vencimiento.es_mayor(&fecha_actual) || fecha_igual)  // fecha_vencimiento >= fecha_actual
-        {
-            lista_prestamos_vencer.push(prestamo.clone());
+            if no_devolvio(&prestamo.estado) &&
+            !prestamo.fecha_vencimiento.es_mayor(&fecha_limite) &&  // fecha_vencimiento <= fecha_limite
+            (prestamo.fecha_vencimiento.es_mayor(&fecha_actual) || fecha_igual)  // fecha_vencimiento >= fecha_actual
+            {
+                lista_prestamos_vencer.push(prestamo.clone());
+            }
         }
-    }
-    lista_prestamos_vencer    
+         lista_prestamos_vencer    
     }
 
     fn prestamos_vencidos(&self, fecha_actual: &Fecha) -> Vec<Prestamo> {
@@ -576,6 +576,7 @@ mod test {
             }
         };
         assert_eq!(esta_devuelto, true);
+
         
     }
 }
