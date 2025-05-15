@@ -1,8 +1,7 @@
-use std::{collections::VecDeque, num::NonZeroU64};
-
+use std::collections::VecDeque;
 use crate::tp03::ej03::Fecha;
 
-use super::ej07::compare;
+
 
 #[derive(Clone)]
 enum TipoAnimal {

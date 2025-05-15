@@ -37,7 +37,7 @@ impl Fecha {
         self.dia >= 1 && self.dia <= max_days
     }
 
-    fn sumar_dias (&mut self, mut days: u32) {
+    pub fn sumar_dias (&mut self, mut days: u32) {
         let days_in_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         let mut days_in_current_month = days_in_month[self.mes as usize];
 
@@ -100,7 +100,7 @@ impl Fecha {
 
     }
 
-    fn es_mayor (&self, other: &Fecha) -> bool {
+    pub fn es_mayor (&self, other: &Fecha) -> bool { //Retorna true si la fecha que recibí es mayor.
 
         //First check the year.
         if other.año < self.año {
@@ -117,7 +117,7 @@ impl Fecha {
         }
 
         //If months are equal, compare day.
-        other.dia > self.dia
+        other.dia < self.dia
     }
 }
 
