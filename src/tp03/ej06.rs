@@ -50,9 +50,9 @@ pub fn obtener_materia_calificacion_baja(examenes: &Vec<Examen>) -> String {
     let mut nota_mas_baja = f64::MAX;
     let mut materia= String::from("materia");
     
-    for examen in examenes.iter() {
+    for examen in examenes.iter() { //Busco el examen con menor nota.
         if examen.nota < nota_mas_baja {
-            nota_mas_baja= examen.nota;
+            nota_mas_baja= examen.nota; //Actualizo.
             materia= examen.nombre_materia.clone();
         }
     }
@@ -142,7 +142,7 @@ impl Estudiante {
                 materia_alta: obtener_materia_calificacion_alta(&self.examenes),
             };
 
-            return Some(informe);
+            return Some(informe); //Returno el Option con el informe.
         }
 
      }
@@ -182,7 +182,7 @@ mod  test {
 
         let mut student= Estudiante::new(String::from("Pepe"), 123);
         let informe2 = student.generar_informe();
-        assert!(informe2.is_none());
+        assert!(informe2.is_none()); //Pruebo con un estudiante que no tenga informe.
 
     }
 
