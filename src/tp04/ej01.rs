@@ -19,7 +19,6 @@ impl Primo for i32 {
 }
 
 pub fn contar_primos(numeros: &Vec<i32>) -> u32 {    
-    //Preg si no pasa nada al usar el .count(), porque el count me consume el vector ????!!!!!
     //&&i32 ????
     numeros.iter().filter(|x| x.soy_primo()).count() as u32
 }
