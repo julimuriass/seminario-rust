@@ -30,7 +30,12 @@ impl Suscripcion {
             _ => {}
         }
     }
+
+    fn cancelarse (&mut self) {
+        self.activa = false
+    }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -98,5 +103,18 @@ mod test {
         };
         assert_eq!(is_super, true);
 
+    }
+
+    #[test]
+    fn test_cancelarse() {
+        let mut suscripcion = Suscripcion{tipo: TipoSuscripcion::Basic, 
+            costo_mensual: 100.0, duracion_meses: 1,
+            fecha_inicio: Fecha {dia: (12), mes: (3), año: (2000)},
+            activa: true};
+
+        assert!(suscripcion.activa);
+
+        suscripcion.cancelarse();
+        assert_eq!(suscripcion.activa, false); //Test Ok. A suscription knows how to cancel itself.
     }
 }
