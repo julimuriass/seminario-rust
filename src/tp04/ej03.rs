@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::tp03::ej03::Fecha;
 
 enum TipoSuscripcion {
@@ -104,6 +106,111 @@ impl Suscripcion {
     }
 }
 
+enum MedioPago {
+    Efectivo,
+    MercadoPago {
+        cbu: u32,
+        monto: f64,
+    },
+    TransferenciaBancaria {
+        cuenta_destino: String,
+        cuenta_origen: String,
+        monto: f64,
+    },
+    TarjetaCredito {
+        numero_tarjeta: u32,
+        monto: f64,
+    },
+    Cripto {
+        tipo_cripto: String,
+        monto: f64,
+    },
+}
+
+struct Usuario {
+    suscripciones: Vec<Suscripcion>,
+    medio_pago: MedioPago,
+    id: u32,
+    username: String,
+    nombre: String,
+    apellido: String,
+    email: String,
+}
+
+impl Usuario {
+    fn new(medio_pago: MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> Usuario {
+        Usuario {
+            medio_pago,
+            suscripciones: Vec::new(),
+            id,
+            username,
+            nombre,
+            apellido,
+            email,
+        }
+    }
+
+    fn agregar_suscripcion(&mut self, suscripcion: Suscripcion) {
+        self.suscripciones.iter_mut().for_each(|s| s.desactivar_suscripcion()); //Deactivate all previous subscriptons.
+        self.suscripciones.push(suscripcion); //Add the new subscription.
+    }
+
+    fn obtener_suscripcion_activa(&self) -> Option<&Suscripcion> {
+        self.suscripciones.iter().find(|s| s.activa)
+    }
+
+    fn obtener_suscripcion_activa_mutable(&mut self) -> Option<&mut Suscripcion> {
+        self.suscripciones.iter_mut().find(|s| s.activa)
+    }
+
+    fn cancelar_suscripcion(&mut self) -> Result<(), String> {
+        match self.obtener_suscripcion_activa_mutable() {
+            Some(suscripcion_a_cancelar) => {
+                suscripcion_a_cancelar.desactivar_suscripcion();
+                Ok(())
+            }
+            None => Err("No se puede cancelar esa suscripción. Ya sea porque no existe o porque ya está desactivada.".to_string())
+        }
+    }
+
+    fn upgrade_suscripcion(&mut self) -> Result<(), String> {
+        match self.obtener_suscripcion_activa_mutable() {
+            Some(suscripcion) => {
+                suscripcion.upgrade();
+                Ok(())
+            }
+            None => Err("No hay una suscripción activa para mejorar.".to_string())
+        }
+    }
+
+    fn downgrade_suscripcion(&mut self) -> Result<(), String> {
+        match self.obtener_suscripcion_activa_mutable() {
+            Some(suscripcion) => {
+                suscripcion.downgrade();
+                Ok(())
+            }
+            None => Err("No hay una suscripción activa para degradar.".to_string())
+        }
+    }
+}
+
+struct StreamingRust {
+    usuarios: HashMap<u32, Usuario>, //Key is the user's id.
+}
+
+impl StreamingRust {
+    fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
+        //Suscripciones_activas is a vec containing references to the TipoSuscripcion.
+        //...= values goes through each element of the hashmap. Filter_map is going to filter and transform the following:  Map is going to transform all the elements into its types (only the elements that have an active subscription). Collect is going to 'collect' and 'put' that all into the Vec.
+        let suscripciones_activas: Vec<&TipoSuscripcion> = self.usuarios.values().filter_map(|u| u.obtener_suscripcion_activa().map(|s|&s.tipo)).collect();
+
+        if suscripciones_activas.is_empty() {
+            return None;
+        } else {
+            //Ask for help!!!!
+        }
+    }
+}
 
 
 
@@ -130,6 +237,22 @@ mod test {
         assert_eq!(suscripcion0.activa, false);
     }
 
+    #[test]
+    fn test_operaciones_usuario() {
+
+        let medio_pago = MedioPago::Efectivo;
+        let mut user = Usuario::new(medio_pago, 123, "pepe".to_string(), "P".to_string(), "ape".to_string(), "email".to_string());
+
+        let mut suscripcion = Suscripcion::new(TipoSuscripcion::Basic, 3, Fecha { dia: (12), mes: (4), año: (2020) });
+
+        user.agregar_suscripcion(suscripcion);
+        assert!(user.obtener_suscripcion_activa().is_some()); //Ok.
+       
+        
+        
+        assert!(user.upgrade_suscripcion().is_ok()); //Ok.
+        assert!(user.downgrade_suscripcion().is_ok()); //Ok.
+    }
     
  
     
