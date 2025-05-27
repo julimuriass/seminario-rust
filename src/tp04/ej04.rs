@@ -56,8 +56,43 @@ struct Vendedor {
 }
 
 struct Cliente {
+    info: DatosPersona,
+    beneficio: bool,
+    email_newsletter: Option<String>, //If the client has the benefit then they'll have an email associated with it.
+}
+
+impl Cliente {
+    fn descuento_beneficio_newsletter(&self) -> Option<f64> {
+        match self.beneficio {
+            true => Some(10.0), //If the client has the benefit then this fn will return the discount.
+            false => None,
+        }
+    }
+}
+
+enum MedioPago {
+    TarjetaCredito,
+    TarjetaDebito,
+    TransferenciaBancaria,
+    Efectivo,
+}
+
+struct ProductoVenta { //Is it okay to create this??
+    producto: Producto,
+    cantidad_vendida: u32,
 }
     
+struct Venta {
+    listado_productos: Vec<ProductoVenta>,
+    vendedor: Vendedor,
+    cliente: Cliente,
+    fecha: Fecha,
+    medio_pago: MedioPago,
+}
+
+impl Venta {
+
+}
 
 #[cfg(test)]
 mod test {
