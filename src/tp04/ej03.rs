@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::tp03::ej03::Fecha;
 
 enum TipoSuscripcion {
@@ -88,7 +87,7 @@ impl Suscripcion {
                 self.tipo = tipo_nuevo;
                 Ok(())
             }
-            None => Err("No se puede ascender de Super.".to_string())  
+            None => Err("No se puede ascender de Super.".to_string()) //Is it okay to make it an err? 
         }
     }
 
@@ -110,20 +109,15 @@ enum MedioPago {
     Efectivo,
     MercadoPago {
         cbu: u32,
-        monto: f64,
     },
     TransferenciaBancaria {
         cuenta_destino: String,
-        cuenta_origen: String,
-        monto: f64,
-    },
+        cuenta_origen: String,    },
     TarjetaCredito {
         numero_tarjeta: u32,
-        monto: f64,
     },
     Cripto {
         tipo_cripto: String,
-        monto: f64,
     },
 }
 
@@ -199,7 +193,7 @@ struct StreamingRust {
 }
 
 impl StreamingRust {
-    fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
+    /*fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
         //Suscripciones_activas is a vec containing references to the TipoSuscripcion.
         //...= values goes through each element of the hashmap. Filter_map is going to filter and transform the following:  Map is going to transform all the elements into its types (only the elements that have an active subscription). Collect is going to 'collect' and 'put' that all into the Vec.
         let suscripciones_activas: Vec<&TipoSuscripcion> = self.usuarios.values().filter_map(|u| u.obtener_suscripcion_activa().map(|s|&s.tipo)).collect();
@@ -208,8 +202,9 @@ impl StreamingRust {
             return None;
         } else {
             //Ask for help!!!!
+            //Es mucho lío recorrer suscripciones_activas y tener un arreglo auxiliar para acumular la cantidad 
         }
-    }
+    }*/
 }
 
 
