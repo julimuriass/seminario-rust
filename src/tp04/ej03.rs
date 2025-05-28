@@ -189,7 +189,7 @@ impl Usuario {
 }
 
 struct StreamingRust {
-    usuarios: HashMap<u32, Usuario>, //Key is the user's id.
+    usuarios: Vec<Usuario>, //Key is the user's id.
 }
 
 impl StreamingRust {
@@ -205,6 +205,15 @@ impl StreamingRust {
             //Es mucho lío recorrer suscripciones_activas y tener un arreglo auxiliar para acumular la cantidad 
         }
     }*/
+
+    fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
+        if self.usuarios.is_empty() {
+            return None;
+        } else {
+            let 
+        }
+
+    }
 }
 
 
