@@ -170,6 +170,17 @@ impl Venta {
     }
 }
 
+struct SistemaVentas {
+    ventas: Vec<Venta>, 
+    //Tendría que tener tmb la lista de categorías con descuento?? O como lo implementé ya no hace falta??
+}
+
+//Help.
+
+impl SistemaVentas {
+     
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
