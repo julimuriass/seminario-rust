@@ -72,20 +72,19 @@ enum ErrorIntercambio {
     UsuarioNoEncontrado,
 }
 
+//Obtener cotizacion.
+pub fn obtener_cotizacion(cripto_nombre: &str) -> f64  { //Datos en dólares del 28/05/2025.
+    match cripto_nombre {
+        "Bitcoin" => 107281.20,
+        "ETC" => 18.10,
+        "Litecoin" => 94.42,
+        _ => 50.0,
+    }
+}
 
 impl PlataformaXYZ {
     fn new() -> Self {
         PlataformaXYZ { usuarios: HashMap::new(), criptomonedas: HashMap::new(), transacciones:Vec::new() }
-    }
-
-    //Obtener cotizacion.
-    fn obtener_cotizacion(&self, cripto_nombre: &str) -> f64  { //En dólares. 
-        match cripto_nombre {
-            "Bitcoin" => 107281.20,
-            "ETC" => 18.10,
-            "Litecoin" => 94.42,
-            _ => 50.0,
-        }
     }
 
     //Registrar usuario.
@@ -150,7 +149,7 @@ impl PlataformaXYZ {
         }
 
         //If we've come this far it is because the purchase can be made.
-        let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre); //How can I fix this???
+        let cotizacion = obtener_cotizacion(&criptomoneda.nombre); //How can I fix this???
         usuario.balance_fiat -= monto_fiat; //Descuento el monto_fiat del balance_fiat del usuario.
 
         //Acredito la cantidad acorde de criptos.
@@ -172,7 +171,7 @@ impl PlataformaXYZ {
         Si "pepe" no existe: crea la entrada con valor 0.0 y retorna &mut f64
         */
 
-        
+
         let transaccion = Transaccion {
             fecha: Utc::now(),
             usuario: usuario.clone(),
@@ -211,7 +210,7 @@ impl PlataformaXYZ {
             return Err(ErrorIntercambio::BalanceInsuficiente);
         }
 
-        let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre);
+        let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
         let monto_fiat = cotizacion * monto_criptomoneda;
 
         
@@ -266,7 +265,7 @@ impl PlataformaXYZ {
          let mut rng = rand::rng();
          let hash = format!("{}{}", blockchain.nombre, rng.random::<u32>());
          
-         let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre);
+         let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
 
          *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() -= monto_criptomoneda/cotizacion; //Descuento la cantidad acorde de esa cripto.
 
@@ -309,7 +308,7 @@ impl PlataformaXYZ {
         }
 
         //Acredito la cripto en el balance del usuario.
-        let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre);
+        let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
         *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() += monto_criptomoneda/cotizacion;
 
         //Genero la transaccion.
@@ -366,5 +365,8 @@ impl PlataformaXYZ {
         Ok(())
     }
 
+
+    //Estadísticas.
+    
     
 }
