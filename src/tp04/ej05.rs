@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
-use rand::rng;
-use rand::rng;
 use rand::Rng;
 
 #[derive(Clone, Debug)]
@@ -87,7 +85,6 @@ impl PlataformaXYZ {
             "ETC" => 18.10,
             "Litecoin" => 94.42,
             _ => 50.0,
-
         }
     }
 
@@ -161,7 +158,9 @@ impl PlataformaXYZ {
 
         *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) += cantidad_cripto;
 
-        /*
+
+        /* EXPLICACIÓN:
+
         entry() = busca si existe la clave, me da acceso para leer/crear la entrada. Retorna un entry enum (occupied, vacant).
         or_insert() = 
             match entry {
@@ -173,6 +172,7 @@ impl PlataformaXYZ {
         Si "pepe" no existe: crea la entrada con valor 0.0 y retorna &mut f64
         */
 
+        
         let transaccion = Transaccion {
             fecha: Utc::now(),
             usuario: usuario.clone(),
@@ -218,7 +218,7 @@ impl PlataformaXYZ {
 
         //Actualizar datos del usuario.
         usuario.balance_fiat += monto_fiat;
-        *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) -= monto_criptomoneda; //preg if this is okay (I mean working with monto_criptomoneda, or should I create a cantidad_cripto??)
+        *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) -= monto_criptomoneda/cotizacion; //preg if this is okay (Cantidad_cripto = monto_criptomoneda/cotizacion)
 
         //Creo la transaccion.
         let transaccion = Transaccion {
@@ -268,6 +268,8 @@ impl PlataformaXYZ {
          
          let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre);
 
+         *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() -= monto_criptomoneda/cotizacion; //Descuento la cantidad acorde de esa cripto.
+
          //Generar transaccion.
          let transaccion = Transaccion {
             fecha: Utc::now(),
@@ -286,7 +288,83 @@ impl PlataformaXYZ {
          Ok(hash)
     }
 
+    fn recibir_criptomoneda_de_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, usuario: &Usuario, blockchain: &Blockchain) -> Result<(), ErrorIntercambio> {
+        //Check user data.
+        let usuario = self.usuarios.get_mut(&usuario.email)
+            .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
+
+        if !usuario.identidad_validada {
+            return Err(ErrorIntercambio::UsuarioNoValido);
+        }
+
+        //Check cripto and blockchain.
+        let cripto = self.criptomonedas.get(&criptomoneda.nombre)
+            .ok_or(ErrorIntercambio::CriptoNoEncontrada)?;
+        
+        let blockchain_soportada = cripto.listado_blockchains.iter()
+            .any(|b| b.nombre == blockchain.nombre); //Busco la blockchain dada en el listado de blockchains de la cripto.
+        
+        if !blockchain_soportada {
+            return Err(ErrorIntercambio::BlockchainNoDisponible);
+        }
+
+        //Acredito la cripto en el balance del usuario.
+        let cotizacion = self.obtener_cotizacion(&criptomoneda.nombre);
+        *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() += monto_criptomoneda/cotizacion;
+
+        //Genero la transaccion.
+        let transaccion = Transaccion {
+            fecha: Utc::now(),
+            tipo: TipoTransaccion::RecepcionCripto,
+            usuario: usuario.clone(),
+            criptomoneda: Some(criptomoneda.clone()),
+            monto_fiat: None,
+            monto_criptomoneda: Some(monto_criptomoneda),
+            cotizacion: Some(cotizacion),
+            blockchain: Some(blockchain.clone()),
+            hash: None,
+            medio: None,
+        };
+
+        self.transacciones.push(transaccion);
+        Ok(())
+    }
     
+    fn retirar_fiat_por_determinado_medio(&mut self, monto_fiat: f64, usuario: &Usuario, medio: &Medio) -> Result<(), ErrorIntercambio> {
+        //Check user.
+        let usuario = self.usuarios.get_mut(&usuario.email)
+            .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
+
+        if !usuario.identidad_validada {
+            return Err(ErrorIntercambio::UsuarioNoValido);
+        }
+
+        //Check if the user has enough money.
+        let balance_fiat = usuario.balance_fiat;
+        if balance_fiat < monto_fiat {
+            return Err(ErrorIntercambio::BalanceInsuficiente);
+        }
+
+        //Descontar el monto fiat del monto del usuario.
+        usuario.balance_fiat -= monto_fiat;
+
+        //Generar transaccion.
+        let transaccion = Transaccion {
+            fecha: Utc::now(),
+            tipo: TipoTransaccion::RetiroFiat,
+            usuario: usuario.clone(),
+            monto_fiat: Some(monto_fiat),
+            criptomoneda: None,
+            monto_criptomoneda: None,
+            cotizacion: None,
+            blockchain: None,
+            hash: None,
+            medio: Some(medio.clone()),
+        };
+
+        self.transacciones.push(transaccion);
+        Ok(())
+    }
 
     
 }
