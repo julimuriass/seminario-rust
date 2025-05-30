@@ -228,8 +228,6 @@ impl PlataformaXYZ {
         let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
         let monto_fiat = cotizacion * monto_criptomoneda;
 
-        
-
         //Actualizar datos del usuario.
         usuario.balance_fiat += monto_fiat;
         *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) -= monto_criptomoneda; 
@@ -683,6 +681,45 @@ mod test {
 
         //Compra de una cripto que sí existe desde un usuario que NO puede(user1, por el balance).
         assert!(plataforma.comprar_determinada_criptomoneda(3000.0, &mut user1, &bitcoin).is_err()); //Ok.
+    }
+
+    #[test]
+    fn test_vender_determinada_criptomeda() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda { 
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain],
+        };
+
+        plataforma.comprar_determinada_criptomoneda(3000.0, &mut user0, &bitcoin); //Le compro btc.
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+
+        //Ahora user0 tiene 7000 fiat. Y 0.027963893 btc.
+
+        assert!(plataforma.vender_determinada_criptomoneda(&mut user0, &bitcoin, 0.01).is_ok());
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone();
+        assert_eq!(user0.balance_fiat, 8072.812); //Ok. Se le acreditó el balance fiat de su venta.
     }
 }
 
