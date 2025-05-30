@@ -807,14 +807,36 @@ mod test {
         };
 
         //Arranca user0 sin criptos. (HM len == 0).
-        //println!("Error: {:?}",plataforma.recibir_criptomoneda_de_blockchain(0.01, &bitcoin, &mut user0, &bitcoin_chain) ); //No estaría encontrando la cripto.
+        //println!("Error: {:?}",plataforma.recibir_criptomoneda_de_blockchain(0.01, &bitcoin, &mut user0, &bitcoin_chain) ); 
         assert!(plataforma.recibir_criptomoneda_de_blockchain(0.01, &bitcoin, &mut user0, &bitcoin_chain).is_ok()); //Ok.
 
         let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
         user0 = updated_user.clone(); // Synchronize user0 with the updated user
 
         assert_eq!(user0.balance_criptomoneda.len(), 1); //Ok.
-
     }
+
+    #[test]
+    fn test_retirar_fiat() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let medio = &Medio::MercadoPago;
+
+        assert!(plataforma.retirar_fiat_por_determinado_medio(5000.0,&mut user0, medio).is_ok()); //Ok.
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+        assert_eq!(user0.balance_fiat, 5000.0); //Ok.
+    }
+
 }
 
