@@ -404,8 +404,90 @@ impl PlataformaXYZ {
         auxiliar_vec.iter()
         .max_by_key(|&(_, cantidad)| cantidad)  //Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más ventas).
         .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) //El max_by_key me devuelve un Option<&(String, u32)>, yo quiero un Option<(String, u32)>
+
+        /*EXPLANATION: 
+        Inside the map closure:
+
+        (nombre, cantidad) destructures the reference: nombre is &String, cantidad is &u32
+        nombre.clone() creates an owned String from the &String
+        *cantidad dereferences the &u32 to get an owned u32
+         */
     }
 
+    pub fn criptomoneda_mas_comprada(&self) -> Option<(String, u32)> { //Return an option with the cripto and the amount of sales.
+        let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
+
+    
+        if self.transacciones.is_empty() {
+            return None;
+        }
+
+        //Ir completando el vector.
+        //Solo me fijo en las transacciones cuyo tipo sea CompraCripto.
+        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::CompraCripto)).
+            for_each(|t| { //Para cada una de ellas.
+                if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
+                    entry.1 += 1; //Si existen, aumento el contador de compras asociado a esa cripto.
+                } else {
+                    auxiliar_vec.push((t.criptomoneda.as_ref().unwrap().nombre.to_string(), 1)); //Si no existe, creo la 'posicion' en el vector.
+                }
+            });
+
+        auxiliar_vec.iter()
+        .max_by_key(|&(_, cantidad)| cantidad)  //Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más compras).
+        .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) //El max_by_key me devuelve un Option<&(String, u32)>, yo quiero un Option<(String, u32)>
+    }
+
+    pub fn crpitomoneda_mas_volumen_venta (&self) -> Option<(String, f64)> {
+        let mut auxiliar_vec: Vec<(String, f64)> = Vec::new();
+
+    
+        if self.transacciones.is_empty() {
+            return None;
+        }
+
+        //Ir completando el vector.
+        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::VentaCripto)).
+            for_each(|t| { //Para cada una de ellas.
+                if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
+                    entry.1 += t.monto_criptomoneda.unwrap(); //Si existen, aumento el contador asociado a esa cripto.
+                    //Sé que es seguro hacer el unwrap. (El tipo de transacción VentaCripto implica que haya algo (Some()) en el monto_criptomoneda).
+                } else {
+                    auxiliar_vec.push((t.criptomoneda.as_ref().unwrap().nombre.to_string(), t.monto_criptomoneda.unwrap())); //Si no existe, creo la 'posicion' en el vector.
+                }
+            });
+
+        auxiliar_vec.iter()
+        .max_by(|&(_, volumen1), &(_, volumen2)| volumen1.partial_cmp(&volumen2).unwrap())//Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más volumen de venta).
+        .map(|(nombre, volumen)| (nombre.clone(), *volumen))
+    
+    }
+
+
+    pub fn crpitomoneda_mas_volumen_compra (&self) -> Option<(String, f64)> {
+        let mut auxiliar_vec: Vec<(String, f64)> = Vec::new();
+
+    
+        if self.transacciones.is_empty() {
+            return None;
+        }
+
+        //Ir completando el vector.
+        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::CompraCripto)).
+            for_each(|t| { //Para cada una de ellas.
+                if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
+                    entry.1 += t.monto_criptomoneda.unwrap(); //Si existen, aumento el contador asociado a esa cripto.
+                    //Sé que es seguro hacer el unwrap. (El tipo de transacción CompraCripto implica que haya algo (Some()) en el monto_criptomoneda).
+                } else {
+                    auxiliar_vec.push((t.criptomoneda.as_ref().unwrap().nombre.to_string(), t.monto_criptomoneda.unwrap())); //Si no existe, creo la 'posicion' en el vector.
+                }
+            });
+
+        auxiliar_vec.iter()
+        .max_by(|&(_, volumen1), &(_, volumen2)| volumen1.partial_cmp(&volumen2).unwrap())//Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más volumen de compra).
+        .map(|(nombre, volumen)| (nombre.clone(), *volumen))
+    
+    }
     
     
 }
