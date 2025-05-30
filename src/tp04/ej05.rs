@@ -312,7 +312,7 @@ impl PlataformaXYZ {
 
         //Check cripto and blockchain.
         let cripto = self.criptomonedas.get(&criptomoneda.nombre)
-            .ok_or(ErrorIntercambio::CriptoNoEncontrada)?;
+            .ok_or(ErrorIntercambio::CriptoNoEncontrada)?; //Si no existe se propaga el error y termina la función.
         
         let blockchain_soportada = cripto.listado_blockchains.iter()
             .any(|b| b.nombre == blockchain.nombre); //Busco la blockchain dada en el listado de blockchains de la cripto.
@@ -323,7 +323,12 @@ impl PlataformaXYZ {
 
         //Acredito la cripto en el balance del usuario.
         let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
-        *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() += monto_criptomoneda/cotizacion;
+        if let Some(balance) = usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre) { //Busco si ya está la cripto en los balances del usuario.
+            *balance += monto_criptomoneda / cotizacion; 
+        } else {
+            // Si la criptomoneda no existe en el balance, la inicializo con el monto dado.
+            usuario.balance_criptomoneda.insert(criptomoneda.nombre.clone(), monto_criptomoneda / cotizacion);
+        }
 
         //Genero la transaccion.
         let transaccion = Transaccion {
@@ -772,6 +777,44 @@ mod test {
 
         //Probar con una blockchain que no existe.
         assert!(plataforma.retirar_criptomoneda_a_blockchain(0.01, &bitcoin, &bitcoin_unvalid_chain, &mut user0).is_err()); //Ok.
+    }
+
+    #[test]
+    fn test_recibir_criptomoneda_a_blockchain() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain { 
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda { 
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain.clone()],
+        };
+
+        //Arranca user0 sin criptos. (HM len == 0).
+        //println!("Error: {:?}",plataforma.recibir_criptomoneda_de_blockchain(0.01, &bitcoin, &mut user0, &bitcoin_chain) ); //No estaría encontrando la cripto.
+        assert!(plataforma.recibir_criptomoneda_de_blockchain(0.01, &bitcoin, &mut user0, &bitcoin_chain).is_ok()); //Ok.
+
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+
+        assert_eq!(user0.balance_criptomoneda.len(), 1); //Ok.
+
     }
 }
 
