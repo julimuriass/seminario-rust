@@ -79,6 +79,7 @@ struct PlataformaXYZ {
 }
 
 //Custom errors.
+#[derive(Clone, Debug)]
 enum ErrorIntercambio { 
     UsuarioNoValido,
     BalanceInsuficiente,
@@ -490,6 +491,8 @@ impl PlataformaXYZ {
 
 #[cfg(test)]
 mod test {
+    use core::hash;
+
     use super::*;
 
     fn crear_plataforma() -> PlataformaXYZ {
@@ -720,6 +723,55 @@ mod test {
         let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
         user0 = updated_user.clone();
         assert_eq!(user0.balance_fiat, 8072.812); //Ok. Se le acreditó el balance fiat de su venta.
+    }
+
+    #[test]
+    fn test_retirar_criptomoneda_a_blockchain() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain { //Blockchain válida.
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        let bitcoin_unvalid_chain = Blockchain { //Blockchain NO válida.
+            nombre: "bit".to_string(),
+            prefijo: "b".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda { 
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain.clone()],
+        };
+
+
+        plataforma.comprar_determinada_criptomoneda(3000.0, &mut user0, &bitcoin); //Le compro btc.
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+
+        //Ahora user0 tiene 7000 fiat. Y 0.027963893 btc.
+
+        assert!(plataforma.retirar_criptomoneda_a_blockchain(0.01, &bitcoin, &bitcoin_chain, &mut user0).is_ok());
+
+        //let hash = plataforma.retirar_criptomoneda_a_blockchain(0.01, &bitcoin, &bitcoin_chain, &mut user0);
+        //println!("{}", hash.unwrap()); 
+
+
+        //Probar con una blockchain que no existe.
+        assert!(plataforma.retirar_criptomoneda_a_blockchain(0.01, &bitcoin, &bitcoin_unvalid_chain, &mut user0).is_err()); //Ok.
     }
 }
 
