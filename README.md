@@ -1,4 +1,4 @@
 # seminario-rust
 
 hola
-nice day!
+Agradecimientos a pepe que está en todos los tests.

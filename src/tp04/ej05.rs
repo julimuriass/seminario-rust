@@ -629,6 +629,60 @@ mod test {
         assert!(plataforma.ingresar_dinero(2000.0, &mut user3).is_err()); //Ok.
     }
 
-    
+    #[test]
+    fn test_comprar_determinada_moneda() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let mut user1 = Usuario {
+            nombre: "Juan".to_string(),
+            apellido: "J".to_string(),
+            email: "emailJuan".to_string(),
+            dni: 234,
+            identidad_validada: true,
+            balance_fiat: 2000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda { //Esta cripto sí está.
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain],
+        };
+
+        let pepecripto = Criptomoneda { //Esta cripto no.
+            nombre: "PepeCripto".to_string(),
+            prefijo: "PC".to_string(),
+            listado_blockchains: vec![],
+        };
+
+        //Compra de una cripto que existe desde un usario que sí puede(user0).
+        assert!(plataforma.comprar_determinada_criptomoneda(3000.0, &mut user0, &bitcoin).is_ok()); //Ok.
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+        assert_eq!(user0.balance_criptomoneda.len(), 1); //Tiene la cripto.
+
+        //Compra de una cripto que no existe desde un usuario que sí puede(user0).
+        assert!(plataforma.comprar_determinada_criptomoneda(3000.0, &mut user0, &pepecripto).is_err()); //Ok.
+
+        //Compra de una cripto que sí existe desde un usuario que NO puede(user1, por el balance).
+        assert!(plataforma.comprar_determinada_criptomoneda(3000.0, &mut user1, &bitcoin).is_err()); //Ok.
+    }
 }
 
