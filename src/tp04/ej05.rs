@@ -91,7 +91,7 @@ enum ErrorIntercambio {
 pub fn obtener_cotizacion(cripto_nombre: &str) -> f64  { //Datos en dólares del 28/05/2025.
     match cripto_nombre {
         "Bitcoin" => 107281.20,
-        "ETC" => 18.10,
+        "Ethereum" => 18.10,
         "Litecoin" => 94.42,
         _ => 50.0,
     }
@@ -111,7 +111,7 @@ impl PlataformaXYZ {
         self.criptomonedas.insert(criptomoneda.nombre.clone(), criptomoneda);
     }
 
-    pub fn ingresar_dinero(&mut self, monto_fiat: f64, usuario: Usuario) -> Result<(), ErrorIntercambio> {
+    pub fn ingresar_dinero(&mut self, monto_fiat: f64, usuario: &mut Usuario) -> Result<(), ErrorIntercambio> {
         //Verify that the user exists and it is valided.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -120,7 +120,7 @@ impl PlataformaXYZ {
             true => {
                 //Acredito el monto fiat.
                 usuario.balance_fiat += monto_fiat;
-
+                //println!("{}", usuario.balance_fiat); Just to checked it worked (Ok.)
                 //Creo la transaccion.
                 let transaccion = Transaccion {
                     fecha: Utc::now(),
@@ -143,7 +143,7 @@ impl PlataformaXYZ {
         }
     }
 
-    pub fn comprar_determinada_criptomoneda(&mut self, monto_fiat: f64, usuario: Usuario, criptomoneda: &Criptomoneda) -> Result<(), ErrorIntercambio> {
+    pub fn comprar_determinada_criptomoneda(&mut self, monto_fiat: f64, usuario: &mut Usuario, criptomoneda: &Criptomoneda) -> Result<(), ErrorIntercambio> {
         //Check if the user exists.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -204,7 +204,7 @@ impl PlataformaXYZ {
         Ok(())
     }
 
-    pub fn vender_determinada_criptomoneda(&mut self, usuario: &Usuario, criptomoneda: &Criptomoneda, monto_criptomoneda: f64) -> Result<(), ErrorIntercambio> {
+    pub fn vender_determinada_criptomoneda(&mut self, usuario: &mut Usuario, criptomoneda: &Criptomoneda, monto_criptomoneda: f64) -> Result<(), ErrorIntercambio> {
         //Check if the user exists.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -252,7 +252,7 @@ impl PlataformaXYZ {
         Ok(())
     }
 
-    pub fn retirar_criptomoneda_a_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, blockchain: &Blockchain, usuario: &Usuario) -> Result<String, ErrorIntercambio> {
+    pub fn retirar_criptomoneda_a_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, blockchain: &Blockchain, usuario: &mut Usuario) -> Result<String, ErrorIntercambio> {
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
 
@@ -302,7 +302,7 @@ impl PlataformaXYZ {
          Ok(hash)
     }
 
-    pub fn recibir_criptomoneda_de_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, usuario: &Usuario, blockchain: &Blockchain) -> Result<(), ErrorIntercambio> {
+    pub fn recibir_criptomoneda_de_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, usuario: &mut Usuario, blockchain: &Blockchain) -> Result<(), ErrorIntercambio> {
         //Check user data.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -344,7 +344,7 @@ impl PlataformaXYZ {
         Ok(())
     }
     
-    pub fn retirar_fiat_por_determinado_medio(&mut self, monto_fiat: f64, usuario: &Usuario, medio: &Medio) -> Result<(), ErrorIntercambio> {
+    pub fn retirar_fiat_por_determinado_medio(&mut self, monto_fiat: f64, usuario: &mut Usuario, medio: &Medio) -> Result<(), ErrorIntercambio> {
         //Check user.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -486,9 +486,149 @@ impl PlataformaXYZ {
         auxiliar_vec.iter()
         .max_by(|&(_, volumen1), &(_, volumen2)| volumen1.partial_cmp(&volumen2).unwrap())//Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más volumen de compra).
         .map(|(nombre, volumen)| (nombre.clone(), *volumen))
-    
+    } 
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn crear_plataforma() -> PlataformaXYZ {
+        let mut plataforma = PlataformaXYZ::new();
+
+        //Crear usuarios.
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let mut user1 = Usuario {
+            nombre: "Juan".to_string(),
+            apellido: "J".to_string(),
+            email: "emailJuan".to_string(),
+            dni: 234,
+            identidad_validada: true,
+            balance_fiat: 2000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let mut user2 = Usuario {
+            nombre: "Rosita".to_string(),
+            apellido: "R".to_string(),
+            email: "emailRosita".to_string(),
+            dni: 345,
+            identidad_validada: true,
+            balance_fiat: 7000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let mut user3 = Usuario {
+            nombre: "Ana".to_string(),
+            apellido: "A".to_string(),
+            email: "emailAna".to_string(),
+            dni: 456,
+            identidad_validada: false,
+            balance_fiat: 7000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        plataforma.registrar_usuario(user0);
+        plataforma.registrar_usuario(user1);
+        plataforma.registrar_usuario(user2);
+        plataforma.registrar_usuario(user3);
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        let ethereum_chain = Blockchain {
+            nombre: "Ethereum".to_string(),
+            prefijo: "ETH".to_string(),
+        };
+
+        let litecoin_chain = Blockchain {
+            nombre: "Litecoin".to_string(),
+            prefijo: "LTC".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain],
+        };
+
+        let ethereum = Criptomoneda {
+            nombre: "Ethereum".to_string(),
+            prefijo: "ETH".to_string(),
+            listado_blockchains: vec![ethereum_chain],
+        };
+
+        let litecoin = Criptomoneda {
+            nombre: "Ethereum".to_string(),
+            prefijo: "ETH".to_string(),
+            listado_blockchains: vec![litecoin_chain],
+        };
+
+        plataforma.registrar_criptomoneda(bitcoin);
+        plataforma.registrar_criptomoneda(ethereum);
+        plataforma.registrar_criptomoneda(litecoin);
+
+        plataforma
     }
-    
+
+
+    #[test]
+    fn test_ingresar_dinero() {
+        let mut plataforma = crear_plataforma();
+
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 10000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        let mut user3 = Usuario {
+            nombre: "Ana".to_string(),
+            apellido: "A".to_string(),
+            email: "emailAna".to_string(),
+            dni: 456,
+            identidad_validada: false,
+            balance_fiat: 7000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        //Test with an user that is valid.
+        
+        //println!("Balance before: {}", &user0.balance_fiat);
+        assert!(plataforma.ingresar_dinero(2000.0, &mut user0).is_ok());
+
+        //let usuario = plataforma.usuarios.get(&user0.email);
+        //println!("From platform {}", usuario.unwrap().balance_fiat); //Se modifica.
+
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0.balance_fiat = updated_user.balance_fiat; // Synchronize user0 with the updated user
+
+        //println!("Balance after: {}", user0.balance_fiat);
+        assert_eq!(user0.balance_fiat, 12000.0);
+
+
+        //Test with an user that is not valid.
+        assert!(plataforma.ingresar_dinero(2000.0, &mut user3).is_err()); //Ok.
+    }
+
     
 }
 
