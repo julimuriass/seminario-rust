@@ -40,7 +40,7 @@ impl Producto {
     fn precio(&self) -> f64 {
         match self.categoria {
             Categoria::Limpieza => self.precio_base * (self.categoria.descuento().unwrap()/100.0), //I know it's sure to use unwrap 'cause I know that it is a category that has some kind of discount.
-            Categoria::Tecnologia => self.precio_base * (self.categoria.descuento().unwrap()/100.0), //Está bien calculado el descuento? jaj
+            Categoria::Tecnologia => self.precio_base * (self.categoria.descuento().unwrap()/100.0), 
             _ => self.precio_base,
         }
     }

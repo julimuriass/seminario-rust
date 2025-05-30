@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use rand::Rng;
+use std::ptr::eq;
 
 #[derive(Clone, Debug)]
 struct Usuario {
@@ -27,13 +28,27 @@ struct Criptomoneda {
 }
 
 #[derive(Clone, Debug)]
-enum TipoTransaccion {
+pub enum TipoTransaccion {
     IngresoFiat,
     CompraCripto,
     VentaCripto,
     RetiroCripto,
     RecepcionCripto,
     RetiroFiat,
+}
+
+impl PartialEq for TipoTransaccion {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TipoTransaccion::CompraCripto, TipoTransaccion::CompraCripto) => true,
+            (TipoTransaccion::IngresoFiat, TipoTransaccion::IngresoFiat) => true,
+            (TipoTransaccion::RecepcionCripto, TipoTransaccion::RecepcionCripto) => true,
+            (TipoTransaccion::RetiroCripto, TipoTransaccion::RetiroCripto) => true,
+            (TipoTransaccion::RetiroFiat, TipoTransaccion::RetiroFiat) => true,
+            (TipoTransaccion::VentaCripto, TipoTransaccion::VentaCripto) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -64,7 +79,7 @@ struct PlataformaXYZ {
 }
 
 //Custom errors.
-enum ErrorIntercambio {
+enum ErrorIntercambio { 
     UsuarioNoValido,
     BalanceInsuficiente,
     CriptoNoEncontrada,
@@ -88,15 +103,15 @@ impl PlataformaXYZ {
     }
 
     //Registrar usuario.
-    fn registrar_usuario(&mut self, usuario: Usuario) { //No lo paso como &Usuario porque lo que le voy a mandar va a ser un clone (una copia). Is that okay???
+    pub fn registrar_usuario(&mut self, usuario: Usuario) { 
         self.usuarios.insert(usuario.email.clone(), usuario);
     }
 
-    fn registrar_criptomoneda(&mut self, criptomoneda: Criptomoneda) {
+    pub fn registrar_criptomoneda(&mut self, criptomoneda: Criptomoneda) {
         self.criptomonedas.insert(criptomoneda.nombre.clone(), criptomoneda);
     }
 
-    fn ingresar_dinero(&mut self, monto_fiat: f64, usuario: Usuario) -> Result<(), ErrorIntercambio> {
+    pub fn ingresar_dinero(&mut self, monto_fiat: f64, usuario: Usuario) -> Result<(), ErrorIntercambio> {
         //Verify that the user exists and it is valided.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -128,7 +143,7 @@ impl PlataformaXYZ {
         }
     }
 
-    fn comprar_determinada_criptomoneda(&mut self, monto_fiat: f64, usuario: Usuario, criptomoneda: &Criptomoneda) -> Result<(), ErrorIntercambio> {
+    pub fn comprar_determinada_criptomoneda(&mut self, monto_fiat: f64, usuario: Usuario, criptomoneda: &Criptomoneda) -> Result<(), ErrorIntercambio> {
         //Check if the user exists.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -149,7 +164,7 @@ impl PlataformaXYZ {
         }
 
         //If we've come this far it is because the purchase can be made.
-        let cotizacion = obtener_cotizacion(&criptomoneda.nombre); //How can I fix this???
+        let cotizacion = obtener_cotizacion(&criptomoneda.nombre); 
         usuario.balance_fiat -= monto_fiat; //Descuento el monto_fiat del balance_fiat del usuario.
 
         //Acredito la cantidad acorde de criptos.
@@ -189,7 +204,7 @@ impl PlataformaXYZ {
         Ok(())
     }
 
-    fn vender_determinada_criptomoneda(&mut self, usuario: &Usuario, criptomoneda: &Criptomoneda, monto_criptomoneda: f64) -> Result<(), ErrorIntercambio> {
+    pub fn vender_determinada_criptomoneda(&mut self, usuario: &Usuario, criptomoneda: &Criptomoneda, monto_criptomoneda: f64) -> Result<(), ErrorIntercambio> {
         //Check if the user exists.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -217,9 +232,9 @@ impl PlataformaXYZ {
 
         //Actualizar datos del usuario.
         usuario.balance_fiat += monto_fiat;
-        *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) -= monto_criptomoneda/cotizacion; //preg if this is okay (Cantidad_cripto = monto_criptomoneda/cotizacion)
+        *usuario.balance_criptomoneda.entry(criptomoneda.nombre.clone()).or_insert(0.0) -= monto_criptomoneda; 
 
-        //Creo la transaccion.
+        //Creo la transaccion. 
         let transaccion = Transaccion {
             fecha: Utc::now(),
             tipo: TipoTransaccion::VentaCripto,
@@ -237,7 +252,7 @@ impl PlataformaXYZ {
         Ok(())
     }
 
-    fn retirar_criptomoneda_a_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, blockchain: &Blockchain, usuario: &Usuario) -> Result<String, ErrorIntercambio> {
+    pub fn retirar_criptomoneda_a_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, blockchain: &Blockchain, usuario: &Usuario) -> Result<String, ErrorIntercambio> {
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
 
@@ -267,7 +282,7 @@ impl PlataformaXYZ {
          
          let cotizacion = obtener_cotizacion(&criptomoneda.nombre);
 
-         *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() -= monto_criptomoneda/cotizacion; //Descuento la cantidad acorde de esa cripto.
+         *usuario.balance_criptomoneda.get_mut(&criptomoneda.nombre).unwrap() -= monto_criptomoneda; //Descuento la cantidad acorde de esa cripto.
 
          //Generar transaccion.
          let transaccion = Transaccion {
@@ -287,7 +302,7 @@ impl PlataformaXYZ {
          Ok(hash)
     }
 
-    fn recibir_criptomoneda_de_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, usuario: &Usuario, blockchain: &Blockchain) -> Result<(), ErrorIntercambio> {
+    pub fn recibir_criptomoneda_de_blockchain(&mut self, monto_criptomoneda: f64, criptomoneda: &Criptomoneda, usuario: &Usuario, blockchain: &Blockchain) -> Result<(), ErrorIntercambio> {
         //Check user data.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -329,7 +344,7 @@ impl PlataformaXYZ {
         Ok(())
     }
     
-    fn retirar_fiat_por_determinado_medio(&mut self, monto_fiat: f64, usuario: &Usuario, medio: &Medio) -> Result<(), ErrorIntercambio> {
+    pub fn retirar_fiat_por_determinado_medio(&mut self, monto_fiat: f64, usuario: &Usuario, medio: &Medio) -> Result<(), ErrorIntercambio> {
         //Check user.
         let usuario = self.usuarios.get_mut(&usuario.email)
             .ok_or(ErrorIntercambio::UsuarioNoEncontrado)?;
@@ -367,6 +382,31 @@ impl PlataformaXYZ {
 
 
     //Estadísticas.
+    pub fn criptomoneda_mas_vendida(&self) -> Option<(String, u32)> { //Return an option with the cripto and the amount of sales.
+        let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
+
+        
+        if self.transacciones.is_empty() {
+            return None;
+        }
+
+        //Ir completando el vector.
+        //Solo me fijo en las transacciones cuyo tipo sea VentaCripto.
+        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::VentaCripto)).
+            for_each(|t| { //Para cada una de ellas.
+                if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
+                    entry.1 += 1; //Si existen, aumento el contador de ventas asociado a esa cripto.
+                } else {
+                    auxiliar_vec.push((t.criptomoneda.as_ref().unwrap().nombre.to_string(), 1)); //Si no existe, creo la 'posicion' en el vector.
+                }
+            });
+
+        auxiliar_vec.iter()
+        .max_by_key(|&(_, cantidad)| cantidad)  //Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más ventas).
+        .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) //El max_by_key me devuelve un Option<&(String, u32)>, yo quiero un Option<(String, u32)>
+    }
+
     
     
 }
+
