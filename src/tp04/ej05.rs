@@ -385,6 +385,8 @@ impl PlataformaXYZ {
     }
 
 
+
+
     //Estadísticas.
     pub fn criptomoneda_mas_vendida(&self) -> Option<(String, u32)> { //Return an option with the cripto and the amount of sales.
         let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
@@ -396,7 +398,7 @@ impl PlataformaXYZ {
 
         //Ir completando el vector.
         //Solo me fijo en las transacciones cuyo tipo sea VentaCripto.
-        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::VentaCripto)).
+        self.transacciones.iter().filter(|t| t.tipo == TipoTransaccion::VentaCripto).
             for_each(|t| { //Para cada una de ellas.
                 if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
                     entry.1 += 1; //Si existen, aumento el contador de ventas asociado a esa cripto.
@@ -420,7 +422,6 @@ impl PlataformaXYZ {
 
     pub fn criptomoneda_mas_comprada(&self) -> Option<(String, u32)> { //Return an option with the cripto and the amount of sales.
         let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
-
     
         if self.transacciones.is_empty() {
             return None;
@@ -428,8 +429,8 @@ impl PlataformaXYZ {
 
         //Ir completando el vector.
         //Solo me fijo en las transacciones cuyo tipo sea CompraCripto.
-        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::CompraCripto)).
-            for_each(|t| { //Para cada una de ellas.
+        self.transacciones.iter().filter(|t| t.tipo == TipoTransaccion::CompraCripto)
+            .for_each(|t| { //Para cada una de ellas.
                 if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
                     entry.1 += 1; //Si existen, aumento el contador de compras asociado a esa cripto.
                 } else {
@@ -451,7 +452,7 @@ impl PlataformaXYZ {
         }
 
         //Ir completando el vector.
-        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::VentaCripto)).
+        self.transacciones.iter().filter(|t| t.tipo == TipoTransaccion::VentaCripto).
             for_each(|t| { //Para cada una de ellas.
                 if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
                     entry.1 += t.monto_criptomoneda.unwrap(); //Si existen, aumento el contador asociado a esa cripto.
@@ -464,7 +465,6 @@ impl PlataformaXYZ {
         auxiliar_vec.iter()
         .max_by(|&(_, volumen1), &(_, volumen2)| volumen1.partial_cmp(&volumen2).unwrap())//Tengo que ver cuál es el máximo de mi vector auxiliar. (Para así saber cuál fue la cripto con más volumen de venta).
         .map(|(nombre, volumen)| (nombre.clone(), *volumen))
-    
     }
 
 
@@ -477,7 +477,7 @@ impl PlataformaXYZ {
         }
 
         //Ir completando el vector.
-        self.transacciones.iter().filter(|t| eq(&t.tipo, &TipoTransaccion::CompraCripto)).
+        self.transacciones.iter().filter(|t|t.tipo == TipoTransaccion::CompraCripto).
             for_each(|t| { //Para cada una de ellas.
                 if let Some(entry) = auxiliar_vec.iter_mut().find(|(name, _)| *name == t.criptomoneda.as_ref().unwrap().nombre) { //Busco si existen en el vector auxiliar.
                     entry.1 += t.monto_criptomoneda.unwrap(); //Si existen, aumento el contador asociado a esa cripto.
@@ -838,5 +838,68 @@ mod test {
         assert_eq!(user0.balance_fiat, 5000.0); //Ok.
     }
 
-}
+    #[test]
+    fn test_estadisticas() {
+        let mut plataforma = crear_plataforma();
 
+        let mut user0 = Usuario {
+            nombre: "Pepe".to_string(),
+            apellido: "P".to_string(),
+            email: "emailPepe".to_string(),
+            dni: 123,
+            identidad_validada: true,
+            balance_fiat: 100000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        //Voy a usar a user0 para haga todas las transacciones.
+
+        // Crear blockchains
+        let bitcoin_chain = Blockchain {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+        };
+
+        let ethereum_chain = Blockchain {
+            nombre: "Ethereum".to_string(),
+            prefijo: "ETH".to_string(),
+        };
+
+        // Crear criptomonedas
+        let bitcoin = Criptomoneda {
+            nombre: "Bitcoin".to_string(),
+            prefijo: "BTC".to_string(),
+            listado_blockchains: vec![bitcoin_chain],
+        };
+
+        let ethereum = Criptomoneda {
+            nombre: "Ethereum".to_string(),
+            prefijo: "ETH".to_string(),
+            listado_blockchains: vec![ethereum_chain],
+        };
+
+        plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &bitcoin);
+
+        plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &bitcoin);
+        
+
+        plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &ethereum);
+        
+        let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
+        user0 = updated_user.clone(); // Synchronize user0 with the updated user
+
+
+        //assert_eq!(user0.balance_criptomoneda.len(), 2);
+        //println!("{}", plataforma.transacciones.len());
+        assert_eq!(plataforma.criptomoneda_mas_comprada(), Some(("Bitcoin".to_string(), 2))); //Ok.
+        assert_eq!(plataforma.crpitomoneda_mas_volumen_compra(), Some(("Ethereum".to_string(), 55.24861878453038))); //Ok.
+
+        plataforma.vender_determinada_criptomoneda(&mut user0, &bitcoin, 0.0001);
+        plataforma.vender_determinada_criptomoneda(&mut user0, &bitcoin, 0.0001);
+        plataforma.vender_determinada_criptomoneda(&mut user0, &ethereum, 0.0001);
+
+        assert_eq!(plataforma.criptomoneda_mas_vendida(), Some(("Bitcoin".to_string(), 2))); //Ok.
+        assert_eq!(plataforma.crpitomoneda_mas_volumen_venta(), Some(("Bitcoin".to_string(), 0.0002))); //Ok.
+    }
+}
+ 
