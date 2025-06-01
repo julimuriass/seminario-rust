@@ -367,33 +367,6 @@ impl StreamingRust {
 mod test {
     use super::*;
 
-    fn get_plataforma_con_datos() -> StreamingRust {
-        let mut plataforma = StreamingRust::crear_plataforma();
-
-        //Crear suscripciones.
-        //Basic.
-        let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 4, "1/1/2025".to_string());
-        let mut suscripcion1 = Suscripcion::new(TipoSuscripcion::Basic, 4, "1/1/2025".to_string());
-
-        //Clasic.
-        let mut suscripcion2 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
-        let mut suscripcion3 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
-        let mut suscripcion4 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
-
-        //Super.
-        let mut suscripcion5 = Suscripcion::new(TipoSuscripcion::Super, 4, "1/1/2025".to_string());
-        
-
-        plataforma.crear_usuario(&suscripcion0, &MedioPago::Efectivo, 0, "sus0".to_string(), "S0".to_string(), "0".to_string(), "sus0@email".to_string());
-        plataforma.crear_usuario(&suscripcion1, &MedioPago::Efectivo, 1, "sus1".to_string(), "S1".to_string(), "1".to_string(), "sus1@email".to_string());
-        plataforma.crear_usuario(&suscripcion2, &MedioPago::Efectivo, 2, "sus2".to_string(), "S2".to_string(), "2".to_string(), "sus2@email".to_string());
-        plataforma.crear_usuario(&suscripcion3, &MedioPago::MercadoPago { cbu: 123 }, 3, "sus3".to_string(), "S3".to_string(), "3".to_string(), "sus3@email".to_string());
-        plataforma.crear_usuario(&suscripcion4, &MedioPago::MercadoPago { cbu: 234 }, 4, "sus4".to_string(), "S4".to_string(), "4".to_string(), "sus4@email".to_string());
-        plataforma.crear_usuario(&suscripcion5, &MedioPago::Efectivo, 5, "sus5".to_string(), "S5".to_string(), "5".to_string(), "sus5@email".to_string());
-
-        plataforma
-    }
-
     #[test]
     fn test_upgrade_downgrade() {
         let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 3, "12/9/2020".to_string());
@@ -449,7 +422,7 @@ mod test {
             email: "sus1@email".to_string(),
             apellido: "1".to_string(),
             id: 2,
-            nombre: "sus2".to_string(),
+            nombre: "sus1".to_string(),
             medio_pago: MedioPago::MercadoPago { cbu: 124 },
             suscripciones: vec![Suscripcion {
                 tipo: TipoSuscripcion::Super,
@@ -472,8 +445,81 @@ mod test {
         assert_eq!(user0.suscripciones.iter().any(|s| s.activa), false); //Ok.
     }
 
-    
-    
- 
-    
+    #[test]
+    fn test_estadisticas() {
+        //Creo los usuarios para agregarlos a mi plataforma después.
+        let mut user0 = Usuario {
+            username: "sus0".to_string(),
+            email: "sus0@email".to_string(),
+            apellido: "0".to_string(),
+            id: 1,
+            nombre: "sus0".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Basic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        let mut user1 = Usuario {
+            username: "sus1".to_string(),
+            email: "sus1@email".to_string(),
+            apellido: "1".to_string(),
+            id: 2,
+            nombre: "sus1".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Basic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        let mut user2 = Usuario {
+            username: "sus2".to_string(),
+            email: "sus2@email".to_string(),
+            apellido: "2".to_string(),
+            id: 3,
+            nombre: "sus2".to_string(),
+            medio_pago: MedioPago::MercadoPago { cbu: 123 },
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Clasic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        let mut user3 = Usuario {
+            username: "sus3".to_string(),
+            email: "sus3@email".to_string(),
+            apellido: "3".to_string(),
+            id: 4,
+            nombre: "sus3".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Clasic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: false,
+            }],
+        };
+
+        //En resumen: 
+        //Medios de pago: Activos: 2 de efectivo, 1 de mercado pago. Inactivos: 1 Efectivo.
+        //Suscripciones: Activos: 2 Basic, 1 Clasic. Inactivos: 1 Clasic.
+
+        let mut usuarios = vec![user0.clone(), user1.clone(), user2.clone(), user3.clone()];
+        let mut plataforma = StreamingRust {usuarios};
+
+        assert_eq!(plataforma.medio_pago_mas_usado_activos(), Some(("Efectivo".to_string(), 2))); //Ok.
+        assert_eq!(plataforma.medio_pago_mas_usado(), Some(("Efectivo".to_string(), 3))); //Ok.
+
+        assert_eq!(plataforma.suscripcion_mas_contratada(), Some((TipoSuscripcion::Clasic, 2))); //Ok. (Se queda con el último valor que encontró (el clasic en este caso) si hay un empate).
+        assert_eq!(plataforma.suscripcion_mas_contratada_activos(), Some((TipoSuscripcion::Basic, 2))); //Ok.
+    }
+  
 }
