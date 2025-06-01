@@ -212,13 +212,14 @@ struct StreamingRust {
 }
 
 impl StreamingRust {
-    fn crear_plataforma() -> StreamingRust {
+
+    pub fn crear_plataforma() -> StreamingRust {
         StreamingRust {
             usuarios: Vec::new(),
         }
     }
 
-    fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
+    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
         let usuario = Usuario {
             id: id,
             suscripciones: vec![suscripcion.clone()],
@@ -232,28 +233,28 @@ impl StreamingRust {
         self.usuarios.push(usuario);
     }
 
-    fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
         //Given an user upgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.upgrade_suscripcion(); //Update subscription.
         }
     }
 
-    fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) {
         //Given an user downgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.downgrade_suscripcion(); //Downgrade subscription.
         }
     }
 
-    fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.cancelar_suscripcion(); //Downgrade subscription.
         }
     }
 
     //Estadísticas.
-    fn suscripcion_mas_contratada_activos(&self) -> Option<(TipoSuscripcion, u32)> {
+    pub fn suscripcion_mas_contratada_activos(&self) -> Option<(TipoSuscripcion, u32)> {
         let mut aux_vec: Vec<(TipoSuscripcion, u32)> = Vec::new();
 
         if self.usuarios.is_empty() {
@@ -281,7 +282,7 @@ impl StreamingRust {
         .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) 
     }
 
-    fn suscripcion_mas_contratada(&self) -> Option<(TipoSuscripcion, u32)> {
+    pub fn suscripcion_mas_contratada(&self) -> Option<(TipoSuscripcion, u32)> {
         //No me importan solo las suscripciones activas, tengo que chequear todas.
         let mut aux_vec: Vec<(TipoSuscripcion, u32)> = Vec::new();
 
@@ -309,7 +310,7 @@ impl StreamingRust {
         .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) 
     }
 
-    fn medio_pago_mas_usado_activos(&self) -> Option<(String, u32)> {
+    pub fn medio_pago_mas_usado_activos(&self) -> Option<(String, u32)> {
         let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
 
         if self.usuarios.is_empty() {
@@ -332,7 +333,7 @@ impl StreamingRust {
         .map(|(medio, cantidad)| (medio.clone(), *cantidad)) //applies the map method to transform the result of max_by_key. If max_by_key returns Some((medio, cantidad)), the closure |(medio, cantidad)| (medio.clone(), *cantidad) is applied to the tuple.
     }
 
-    fn medio_pago_mas_usado(&self) -> Option<(String, u32)> {
+    pub fn medio_pago_mas_usado(&self) -> Option<(String, u32)> {
         let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
 
         if self.usuarios.is_empty() {
@@ -366,6 +367,33 @@ impl StreamingRust {
 mod test {
     use super::*;
 
+    fn get_plataforma_con_datos() -> StreamingRust {
+        let mut plataforma = StreamingRust::crear_plataforma();
+
+        //Crear suscripciones.
+        //Basic.
+        let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 4, "1/1/2025".to_string());
+        let mut suscripcion1 = Suscripcion::new(TipoSuscripcion::Basic, 4, "1/1/2025".to_string());
+
+        //Clasic.
+        let mut suscripcion2 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
+        let mut suscripcion3 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
+        let mut suscripcion4 = Suscripcion::new(TipoSuscripcion::Clasic, 4, "1/1/2025".to_string());
+
+        //Super.
+        let mut suscripcion5 = Suscripcion::new(TipoSuscripcion::Super, 4, "1/1/2025".to_string());
+        
+
+        plataforma.crear_usuario(&suscripcion0, &MedioPago::Efectivo, 0, "sus0".to_string(), "S0".to_string(), "0".to_string(), "sus0@email".to_string());
+        plataforma.crear_usuario(&suscripcion1, &MedioPago::Efectivo, 1, "sus1".to_string(), "S1".to_string(), "1".to_string(), "sus1@email".to_string());
+        plataforma.crear_usuario(&suscripcion2, &MedioPago::Efectivo, 2, "sus2".to_string(), "S2".to_string(), "2".to_string(), "sus2@email".to_string());
+        plataforma.crear_usuario(&suscripcion3, &MedioPago::MercadoPago { cbu: 123 }, 3, "sus3".to_string(), "S3".to_string(), "3".to_string(), "sus3@email".to_string());
+        plataforma.crear_usuario(&suscripcion4, &MedioPago::MercadoPago { cbu: 234 }, 4, "sus4".to_string(), "S4".to_string(), "4".to_string(), "sus4@email".to_string());
+        plataforma.crear_usuario(&suscripcion5, &MedioPago::Efectivo, 5, "sus5".to_string(), "S5".to_string(), "5".to_string(), "sus5@email".to_string());
+
+        plataforma
+    }
+
     #[test]
     fn test_upgrade_downgrade() {
         let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 3, "12/9/2020".to_string());
@@ -386,8 +414,65 @@ mod test {
     }
 
     #[test]
-    fn test_operaciones_usuario() {
+    fn test_upgrade_subscription() {
+        let mut user0 = Usuario {
+            username: "sus0".to_string(),
+            email: "sus0@email".to_string(),
+            apellido: "0".to_string(),
+            id: 1,
+            nombre: "sus0".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Basic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        let mut usuarios = vec![user0.clone()];
+        let mut plataforma = StreamingRust {usuarios};
+
+        plataforma.upgrade_suscripcion(&mut user0);
+
+        // Synchronize user0 with the updated user.
+        if let Some(updated_user) = plataforma.usuarios.iter().find(|u| u.id == user0.id) {
+            user0.suscripciones = updated_user.suscripciones.clone();
+        }
+
+        assert!(user0.suscripciones.iter().any(|s| s.tipo == TipoSuscripcion::Clasic)); //Ok.
+
+
+
+        let mut user1 = Usuario {
+            username: "sus1".to_string(),
+            email: "sus1@email".to_string(),
+            apellido: "1".to_string(),
+            id: 2,
+            nombre: "sus2".to_string(),
+            medio_pago: MedioPago::MercadoPago { cbu: 124 },
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Super,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        plataforma.usuarios.push(user1.clone());
+        plataforma.upgrade_suscripcion(&mut user1);
+        assert!(user1.suscripciones.iter().any(|s| s.tipo == TipoSuscripcion::Super)); //Ok.
+
+
+        plataforma.cancelar_suscripcion(&mut user0);
+        // Synchronize user0 with the updated user.
+        if let Some(updated_user) = plataforma.usuarios.iter().find(|u| u.id == user0.id) {
+            user0.suscripciones = updated_user.suscripciones.clone();
+        }
+        assert_eq!(user0.suscripciones.iter().any(|s| s.activa), false); //Ok.
     }
+
+    
     
  
     
