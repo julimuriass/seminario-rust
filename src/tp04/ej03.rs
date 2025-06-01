@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::ptr::eq;
 
 #[derive(Clone, Debug)]
@@ -7,6 +6,18 @@ enum TipoSuscripcion {
     Clasic,
     Super,
 }
+
+impl PartialEq for TipoSuscripcion {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (TipoSuscripcion::Basic, TipoSuscripcion::Basic) => true,
+            (TipoSuscripcion::Clasic, TipoSuscripcion::Clasic) => true,
+            (TipoSuscripcion::Super, TipoSuscripcion::Super) => true,
+            _ => false,
+        }
+    }
+}
+
 
 impl TipoSuscripcion {
     fn costo_mensual(&self) -> f64 {
@@ -123,6 +134,18 @@ enum MedioPago {
     },
 }
 
+impl MedioPago {
+    fn to_string(&self) -> String {
+        match self {
+            MedioPago::Efectivo => String::from("Efectivo"),
+            MedioPago::TarjetaCredito { numero_tarjeta } => String::from("TarjetaCredito"),
+            MedioPago::MercadoPago { cbu } => String::from("MercadoPago"),
+            MedioPago::TransferenciaBancaria { cuenta_destino, cuenta_origen } => String::from("TransferenciaBancaria"),
+            MedioPago::Cripto { tipo_cripto } => String::from("Cripto"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Usuario {
     suscripciones: Vec<Suscripcion>,
@@ -230,22 +253,21 @@ impl StreamingRust {
     }
 
     //Estadísticas.
-    //Saber cual es la suscripción más contratada por los usuarios sobre las suscripciones activas.
-    fn suscripcion_mas_contratada_activos(&self) -> Option<TipoSuscripcion> {
+    fn suscripcion_mas_contratada_activos(&self) -> Option<(TipoSuscripcion, u32)> {
         let mut aux_vec: Vec<(TipoSuscripcion, u32)> = Vec::new();
 
         if self.usuarios.is_empty() {
             return None;
         }
 
-        //Ir llenando el aux_vec con las suscripciones de los usuarios activos.
-        self.usuarios.iter().filter(|u| u.tiene_suscripcion_activa()) //Filtro usuarios con suscripción ctiva.
+        //Ir llenando el aux_vec con las suscripciones activas de los usuarios.
+        self.usuarios.iter().filter(|u| u.tiene_suscripcion_activa()) //Filtro usuarios con suscripción activa.
             .for_each(|u| { //Para cada una de ellas.
                 //Obtener el tipo de suscripción activa.
                 if let Some(suscripcion) = u.obtener_suscripcion_activa() {
                     //Si el tipo de suscripción ya existe en el vector auxiliar aumento en 1 la cantidad de veces que aparece.
                     if let Some(entry) = aux_vec.iter_mut().find(|(tipo, _)| *tipo == suscripcion.tipo) {
-                        entry.0 += 1;
+                        entry.1 += 1;
                     } else {  //Si no existe creo la posición con el Tipo de suscripción y un valor inicial de uno.
                         aux_vec.push((suscripcion.tipo.clone(), 1));
 
@@ -259,6 +281,82 @@ impl StreamingRust {
         .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) 
     }
 
+    fn suscripcion_mas_contratada(&self) -> Option<(TipoSuscripcion, u32)> {
+        //No me importan solo las suscripciones activas, tengo que chequear todas.
+        let mut aux_vec: Vec<(TipoSuscripcion, u32)> = Vec::new();
+
+        if self.usuarios.is_empty() {
+            return None;
+        }
+
+        //Ir llenando el aux_vec con las suscripciones de los usuarios.
+        self.usuarios.iter()
+            .for_each(|u| { //Para cada usuario.
+                //Recorrer sus suscripciones (todas).
+                u.suscripciones.iter().for_each(|suscripcion| {
+                    //Si el tipo de suscripción ya existe en el vector auxiliar aumento en 1 la cantidad de veces que aparece.
+                    if let Some(entry) = aux_vec.iter_mut().find(|(tipo, _)| *tipo == suscripcion.tipo) {
+                        entry.1 += 1;
+                    } else {
+                        //Si no existe creo la posición con el Tipo de suscripción y un valor inicial de uno.
+                        aux_vec.push((suscripcion.tipo.clone(), 1));
+                    }
+                });                     
+            });
+
+        aux_vec.iter()
+        .max_by_key(|&(_, cantidad)| cantidad)  //Tengo que ver cuál es el máximo de mi vector auxiliar.
+        .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) 
+    }
+
+    fn medio_pago_mas_usado_activos(&self) -> Option<(String, u32)> {
+        let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
+
+        if self.usuarios.is_empty() {
+            return None;
+        }
+        
+        //Si no coincide con ninguna, creo la posición con el medio de pago y la cantidad inicializada en 1.
+        self.usuarios.iter().filter(|u| u.tiene_suscripcion_activa()) //Filtro los usuarios con suscripciones activas.
+            .for_each(|u| {
+                //Busco si su medio de pago coincide con alguna entrada en el vector -> aumento en 1 la cantidad.
+                if let Some(entry) = auxiliar_vec.iter_mut().find(|(medio,_)| *medio == u.medio_pago.to_string()) {
+                    entry.1 += 1;
+                } else {
+                    auxiliar_vec.push((u.medio_pago.to_string(), 1));
+                }
+            });
+
+        auxiliar_vec.iter() //Creates an iterator over the elements of auxiliar_vec
+        .max_by_key(|&(_, cantidad)| cantidad) //The &(_, cantidad) pattern destructures each tuple in the vector, ignoring the first element (medio) and borrowing the second element (cantidad). The closure returns the cantidad value, which is used as the key for comparison.
+        .map(|(medio, cantidad)| (medio.clone(), *cantidad)) //applies the map method to transform the result of max_by_key. If max_by_key returns Some((medio, cantidad)), the closure |(medio, cantidad)| (medio.clone(), *cantidad) is applied to the tuple.
+    }
+
+    fn medio_pago_mas_usado(&self) -> Option<(String, u32)> {
+        let mut auxiliar_vec: Vec<(String, u32)> = Vec::new();
+
+        if self.usuarios.is_empty() {
+            return None;
+        }
+
+        //Ir llenando el aux_vec con las suscripciones de los usuarios.
+        self.usuarios.iter()
+            .for_each(|u| { //Para cada usuario. (No filter).
+                u.suscripciones.iter().for_each(|suscripcion| {
+                    //Si el tipo de suscripción ya existe en el vector auxiliar aumento en 1 la cantidad de veces que aparece.
+                    if let Some(entry) = auxiliar_vec.iter_mut().find(|(medio,_)| *medio == u.medio_pago.to_string()) {
+                        entry.1 += 1;
+                    } else {
+                        //Si no existe creo la posición con el Tipo de suscripción y un valor inicial de uno.
+                        auxiliar_vec.push((u.medio_pago.to_string(), 1));
+                    }
+                });                     
+            });
+        
+        auxiliar_vec.iter() //Creates an iterator over the elements of auxiliar_vec
+        .max_by_key(|&(_, cantidad)| cantidad) //The &(_, cantidad) pattern destructures each tuple in the vector, ignoring the first element (medio) and borrowing the second element (cantidad). The closure returns the cantidad value, which is used as the key for comparison.
+        .map(|(medio, cantidad)| (medio.clone(), *cantidad)) //applies the map method to transform the result of max_by_key. If max_by_key returns Some((medio, cantidad)), the closure |(medio, cantidad)| (medio.clone(), *cantidad) is applied to the tuple.    
+    }
 
 }
 
