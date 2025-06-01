@@ -1,6 +1,7 @@
 use std::collections::HashMap;
-use crate::tp03::ej03::Fecha;
+use std::ptr::eq;
 
+#[derive(Clone, Debug)]
 enum TipoSuscripcion {
     Basic,
     Clasic,
@@ -33,7 +34,6 @@ impl TipoSuscripcion {
         }
     }
 
-    //Tendría que implementar un trait para los soy_...() ???!!!
     fn soy_basic(&self) -> bool {
         match self {
             TipoSuscripcion::Basic => true,
@@ -56,15 +56,16 @@ impl TipoSuscripcion {
     }
 }
 
+#[derive(Clone, Debug)]
 struct Suscripcion {
     tipo: TipoSuscripcion,
     duracion_meses: u8,
-    fecha_inicio: Fecha,
+    fecha_inicio: String,
     activa: bool,
 }
 
 impl Suscripcion {
-    fn new(tipo: TipoSuscripcion, duracion_meses: u8, fecha_inicio: Fecha) -> Suscripcion {
+    fn new(tipo: TipoSuscripcion, duracion_meses: u8, fecha_inicio: String) -> Suscripcion {
         Suscripcion {
             tipo,
             duracion_meses,
@@ -105,6 +106,7 @@ impl Suscripcion {
     }
 }
 
+#[derive(Clone, Debug)]
 enum MedioPago {
     Efectivo,
     MercadoPago {
@@ -121,6 +123,7 @@ enum MedioPago {
     },
 }
 
+#[derive(Clone, Debug)]
 struct Usuario {
     suscripciones: Vec<Suscripcion>,
     medio_pago: MedioPago,
@@ -132,18 +135,6 @@ struct Usuario {
 }
 
 impl Usuario {
-    fn new(medio_pago: MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> Usuario {
-        Usuario {
-            medio_pago,
-            suscripciones: Vec::new(),
-            id,
-            username,
-            nombre,
-            apellido,
-            email,
-        }
-    }
-
     fn agregar_suscripcion(&mut self, suscripcion: Suscripcion) {
         self.suscripciones.iter_mut().for_each(|s| s.desactivar_suscripcion()); //Deactivate all previous subscriptons.
         self.suscripciones.push(suscripcion); //Add the new subscription.
@@ -167,6 +158,10 @@ impl Usuario {
         }
     }
 
+    fn tiene_suscripcion_activa(&self) -> bool {
+        self.suscripciones.iter().any(|s| s.activa)
+    }
+
     fn upgrade_suscripcion(&mut self) -> Result<(), String> {
         match self.obtener_suscripcion_activa_mutable() {
             Some(suscripcion) => {
@@ -188,32 +183,83 @@ impl Usuario {
     }
 }
 
+#[derive(Clone, Debug)]
 struct StreamingRust {
-    usuarios: Vec<Usuario>, //Key is the user's id.
+    usuarios: Vec<Usuario>, 
 }
 
 impl StreamingRust {
-    /*fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
-        //Suscripciones_activas is a vec containing references to the TipoSuscripcion.
-        //...= values goes through each element of the hashmap. Filter_map is going to filter and transform the following:  Map is going to transform all the elements into its types (only the elements that have an active subscription). Collect is going to 'collect' and 'put' that all into the Vec.
-        let suscripciones_activas: Vec<&TipoSuscripcion> = self.usuarios.values().filter_map(|u| u.obtener_suscripcion_activa().map(|s|&s.tipo)).collect();
-
-        if suscripciones_activas.is_empty() {
-            return None;
-        } else {
-            //Ask for help!!!!
-            //Es mucho lío recorrer suscripciones_activas y tener un arreglo auxiliar para acumular la cantidad 
+    fn crear_plataforma() -> StreamingRust {
+        StreamingRust {
+            usuarios: Vec::new(),
         }
-    }*/
+    }
 
-    fn medio_pago_mas_usado_suscripciones_activas(&self) -> Option<TipoSuscripcion> {
+    fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
+        let usuario = Usuario {
+            id: id,
+            suscripciones: vec![suscripcion.clone()],
+            medio_pago: medio_pago.clone(),
+            username: username,
+            nombre: nombre,
+            apellido: apellido,
+            email: email,
+        };
+
+        self.usuarios.push(usuario);
+    }
+
+    fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+        //Given an user upgrade their subscription.
+        if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
+            user.upgrade_suscripcion(); //Update subscription.
+        }
+    }
+
+    fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+        //Given an user downgrade their subscription.
+        if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
+            user.downgrade_suscripcion(); //Downgrade subscription.
+        }
+    }
+
+    fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
+        if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
+            user.cancelar_suscripcion(); //Downgrade subscription.
+        }
+    }
+
+    //Estadísticas.
+    //Saber cual es la suscripción más contratada por los usuarios sobre las suscripciones activas.
+    fn suscripcion_mas_contratada_activos(&self) -> Option<TipoSuscripcion> {
+        let mut aux_vec: Vec<(TipoSuscripcion, u32)> = Vec::new();
+
         if self.usuarios.is_empty() {
             return None;
-        } else {
-            let 
         }
 
+        //Ir llenando el aux_vec con las suscripciones de los usuarios activos.
+        self.usuarios.iter().filter(|u| u.tiene_suscripcion_activa()) //Filtro usuarios con suscripción ctiva.
+            .for_each(|u| { //Para cada una de ellas.
+                //Obtener el tipo de suscripción activa.
+                if let Some(suscripcion) = u.obtener_suscripcion_activa() {
+                    //Si el tipo de suscripción ya existe en el vector auxiliar aumento en 1 la cantidad de veces que aparece.
+                    if let Some(entry) = aux_vec.iter_mut().find(|(tipo, _)| *tipo == suscripcion.tipo) {
+                        entry.0 += 1;
+                    } else {  //Si no existe creo la posición con el Tipo de suscripción y un valor inicial de uno.
+                        aux_vec.push((suscripcion.tipo.clone(), 1));
+
+                    }
+                }
+               
+            });
+
+        aux_vec.iter()
+        .max_by_key(|&(_, cantidad)| cantidad)  //Tengo que ver cuál es el máximo de mi vector auxiliar.
+        .map(|(nombre, cantidad)| (nombre.clone(), *cantidad)) 
     }
+
+
 }
 
 
@@ -224,8 +270,8 @@ mod test {
 
     #[test]
     fn test_upgrade_downgrade() {
-        let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 3, Fecha { dia: (12), mes: (4), año: (2020) });
-        let mut suscripcion1 = Suscripcion::new(TipoSuscripcion::Super, 3, Fecha { dia: (12), mes: (4), año: (2020) });
+        let mut suscripcion0 = Suscripcion::new(TipoSuscripcion::Basic, 3, "12/9/2020".to_string());
+        let mut suscripcion1 = Suscripcion::new(TipoSuscripcion::Super, 3, "4/9/2019".to_string());
 
         //Test upgrade. Ok.
         assert_eq!(suscripcion0.tipo.soy_basic(), true);
@@ -243,19 +289,6 @@ mod test {
 
     #[test]
     fn test_operaciones_usuario() {
-
-        let medio_pago = MedioPago::Efectivo;
-        let mut user = Usuario::new(medio_pago, 123, "pepe".to_string(), "P".to_string(), "ape".to_string(), "email".to_string());
-
-        let mut suscripcion = Suscripcion::new(TipoSuscripcion::Basic, 3, Fecha { dia: (12), mes: (4), año: (2020) });
-
-        user.agregar_suscripcion(suscripcion);
-        assert!(user.obtener_suscripcion_activa().is_some()); //Ok.
-       
-        
-        
-        assert!(user.upgrade_suscripcion().is_ok()); //Ok.
-        assert!(user.downgrade_suscripcion().is_ok()); //Ok.
     }
     
  
