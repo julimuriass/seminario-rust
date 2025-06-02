@@ -9,6 +9,7 @@ struct Producto {
 }
 
 #[derive(Clone, Debug)]
+#[derive(Eq, Hash, PartialEq)]
 enum Categoria {
     Hogar,
     Limpieza,
@@ -16,7 +17,7 @@ enum Categoria {
     Tecnologia,
 }
 
-impl PartialEq for Categoria {
+/*impl PartialEq for Categoria {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Categoria::Comida, Categoria::Comida) => true,
@@ -26,7 +27,7 @@ impl PartialEq for Categoria {
             _ => false,
         }
     }
-}
+}*/
 
 #[derive(Clone, Debug)]
 #[derive(Eq, Hash, PartialEq)]
@@ -191,6 +192,39 @@ impl SistemaVentas {
         };
         
         reporte
+    }
+
+    fn reporte_por_categoria(&self) -> ReportePorCategoria {
+        //Recorrer mi vector de ventas.
+        /*
+        Por cada venta :
+            Recorrer el listado de productos. 
+            (Asumo que una misma venta se puede encontrar en más de una entrada del hm, porque sus productos pueden ser de más de una categoría.)
+                Por cada producto cuya categoría no esté registrada en mi HM -> creo una entrada (categoria, vec con esa venta.)
+                Por cada categoría que sí esté registrada ern el hm -> pusheo la venta al valor de esa entrada.
+         */
+
+        let mut hm_auxiliar:HashMap<Categoria, Vec<Venta>> = HashMap::new();
+
+        for venta in self.ventas.iter() { //Para cada venta.
+            let productos_venta = venta.productos.clone();
+            for producto_venta in productos_venta.iter() { //Para cada producto de la lista de productos.
+                let producto = producto_venta.producto.clone(); //Me guardo a ese producto.
+
+                if let Some(ventas_categoria) = hm_auxiliar.get_mut(&producto.categoria) {
+                    ventas_categoria.push(venta.clone());
+                } else {
+                    hm_auxiliar.insert(producto.categoria.clone(), vec![venta.clone()]);
+                }
+
+            }
+        }
+
+        let reporte = ReportePorCategoria {
+            ventas_categoria: hm_auxiliar,
+         };
+         
+         reporte
     }
 
 
