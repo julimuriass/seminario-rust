@@ -165,7 +165,7 @@ impl SistemaVentas {
     }
 
     //Reportes.
-    fn auxiliar_reporte_por_vendedor(&self) -> ReportePorVendedor {
+    fn reporte_por_vendedor(&self) -> ReportePorVendedor {
         //Recorrer mi vector de ventas.
         /*Por cada vendedor nuevo que no esté registrado en mi HM creo una entrada {
             (vendedor, vec con esa venta.)}
@@ -303,6 +303,64 @@ mod test {
 
         //El precio total tendría que ser de 855.0
         assert_eq!(sistema_ventas.precio_final_venta(&venta), 855.0); //Ok.
+    }
+
+    #[test]
+    fn test_reportes() {
+        let persona1 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 123,
+         };
+         
+         let persona2 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 234,
+         };
+
+        let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
+
+        let producto1 = Producto {
+            nombre: "Agua".to_string(),
+            categoria: Categoria::Comida,
+            precio_base: 600.0,
+        };
+
+        let producto2 = Producto {
+            nombre: "Lampara".to_string(),
+            categoria: Categoria::Hogar,
+            precio_base: 2000.0,
+        };
+
+        let prodCant1 = VentaProducto {
+            producto: producto1,
+            cantidad: 1,
+        };
+
+        let prodCant2 = VentaProducto {
+            producto: producto2,
+            cantidad: 1,
+        };
+
+        let productos = vec![prodCant1.clone(), prodCant2.clone()];
+        let mut sistema_ventas = SistemaVentas::new();
+        let venta = sistema_ventas.crear_venta("1/1/2025".to_string(), &cliente, &vendedor, productos.clone(), MedioPago::TransferenciaBancaria);
+        
+
+        let reporte_por_vendedor = sistema_ventas.reporte_por_vendedor();
+
+        assert_eq!(reporte_por_vendedor.ventas_vendedor.len(), 1); //Ok.
+
+
+        sistema_ventas.crear_venta("2/2/2025".to_string(), &cliente, &vendedor, productos.clone(), MedioPago::Efectivo);
+        let reporte_por_vendedor2 = sistema_ventas.reporte_por_vendedor();
+
+        assert_eq!(reporte_por_vendedor2.ventas_vendedor.len(), 1); //Ok.
+        assert_eq!(reporte_por_vendedor2.ventas_vendedor.get(&vendedor).unwrap().len(), 2); //Ok.
     }
 
 }
