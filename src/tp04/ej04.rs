@@ -1,4 +1,4 @@
-use std::{ptr::eq, vec};
+use std::{collections::HashMap, ptr::eq, vec};
 
 #[derive(Clone, Debug)]
 struct Producto {
@@ -80,6 +80,14 @@ struct SistemaVentas {
     porcentajes_descuento: Vec<(Categoria, f64)>,
 }
 
+struct ReportePorCategoria {
+    ventas_categoria: HashMap<Categoria, Vec<Venta>>,
+}
+
+struct ReportePorVendedor {
+    ventas_vendedor: HashMap<Vendedor, Vec<Venta>>,
+}
+
 impl SistemaVentas {
     pub fn new() -> SistemaVentas {
         SistemaVentas {
@@ -141,6 +149,34 @@ impl SistemaVentas {
         precio
     }
 
+    //Reportes.
+    fn reporte_por_vendedor(&self) -> ReportePorVendedor {
+        //Recorrer mi vector de ventas.
+        /*Por cada vendedor nuevo que no esté registrado en mi HM creo una entrada {
+            (vendedor, vec con esa venta.)}
+
+        Por cada vendedor que sí esté registrado en el HM  {
+            pusheo la venta al valor de esa entrada.}
+        */
+
+        /* EXPLANATION:
+        Uso de fold:
+        El método fold toma un acumulador inicial (HashMap::new()) y aplica una operación a cada elemento del iterador (self.ventas.iter()).
+        En este caso, el acumulador es un HashMap que agrupa las ventas por vendedor. */
+
+        self.ventas.iter().fold(ReportePorVendedor { ventas_vendedor: HashMap::new() }, |mut hm_auxiliar, venta| {
+            let vendedor = venta.vendedor.clone();
+    
+            // Si el vendedor ya está registrado, agregar la venta al vector existente.
+            hm_auxiliar.entry(vendedor)
+                .and_modify(|ventas| ventas.push(venta.clone()))
+                .or_insert_with(|| vec![venta.clone()]);
+    
+            hm_auxiliar
+        })
+
+ 
+    }
 
 
         
@@ -251,8 +287,7 @@ mod test {
         let venta = sistema_ventas.crear_venta("1/1/2025".to_string(), &cliente, &vendedor, productos, MedioPago::TransferenciaBancaria);
 
         //El precio total tendría que ser de 855.0
-        assert_eq!(sistema_ventas.precio_final_venta(&venta), 855.0);
-
+        assert_eq!(sistema_ventas.precio_final_venta(&venta), 855.0); //Ok.
     }
 
 }
