@@ -1,4 +1,5 @@
-use std::{collections::HashMap, ptr::eq, vec};
+use std::{collections::HashMap, vec};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug)]
 struct Producto {
@@ -28,6 +29,7 @@ impl PartialEq for Categoria {
 }
 
 #[derive(Clone, Debug)]
+#[derive(Eq, Hash, PartialEq)]
 struct DatosPersona {
     nombre: String, 
     apellido: String,
@@ -35,12 +37,25 @@ struct DatosPersona {
     dni: u32,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct F64Wrapper(f64); //F64Wrapper is a simple struct that contains a single field of type f64.
+
+impl Eq for F64Wrapper {} //The Eq trait is implemented manually. This is safe because PartialEq is already derived, and the wrapper ensures consistent equality checks.
+
+impl Hash for F64Wrapper { //The Hash trait is implemented by converting the f64 value to its bit representation using to_bits(). This ensures that equivalent floating-point values produce the same hash.
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Convert the f64 to its bit representation for consistent hashing
+        self.0.to_bits().hash(state);
+    }
+}
+
 #[derive(Clone, Debug)]
+#[derive(Eq, Hash, PartialEq)]
 struct Vendedor {
     datos: DatosPersona,
     legajo: u32,
     antiguedad: u32,
-    salario: f64,
+    salario: F64Wrapper, //Now, the Vendedor struct can safely derive Eq and Hash. 
 }
 
 #[derive(Clone, Debug)]
@@ -150,7 +165,7 @@ impl SistemaVentas {
     }
 
     //Reportes.
-    fn reporte_por_vendedor(&self) -> ReportePorVendedor {
+    fn auxiliar_reporte_por_vendedor(&self) -> ReportePorVendedor {
         //Recorrer mi vector de ventas.
         /*Por cada vendedor nuevo que no esté registrado en mi HM creo una entrada {
             (vendedor, vec con esa venta.)}
@@ -159,23 +174,23 @@ impl SistemaVentas {
             pusheo la venta al valor de esa entrada.}
         */
 
-        /* EXPLANATION:
-        Uso de fold:
-        El método fold toma un acumulador inicial (HashMap::new()) y aplica una operación a cada elemento del iterador (self.ventas.iter()).
-        En este caso, el acumulador es un HashMap que agrupa las ventas por vendedor. */
+        let mut hm_auxiliar:HashMap<Vendedor, Vec<Venta>> = HashMap::new();
 
-        self.ventas.iter().fold(ReportePorVendedor { ventas_vendedor: HashMap::new() }, |mut hm_auxiliar, venta| {
+        for venta in self.ventas.iter() {
             let vendedor = venta.vendedor.clone();
-    
-            // Si el vendedor ya está registrado, agregar la venta al vector existente.
-            hm_auxiliar.entry(vendedor)
-                .and_modify(|ventas| ventas.push(venta.clone()))
-                .or_insert_with(|| vec![venta.clone()]);
-    
-            hm_auxiliar
-        })
+            
+            if let Some(ventas_vendedor) = hm_auxiliar.get_mut(&vendedor) {
+                ventas_vendedor.push(venta.clone());
+            } else {
+                hm_auxiliar.insert(vendedor, vec![venta.clone()]);
+            }
+        }
 
- 
+        let reporte = ReportePorVendedor {
+           ventas_vendedor: hm_auxiliar,
+        };
+        
+        reporte
     }
 
 
@@ -204,7 +219,7 @@ mod test {
          };
 
         let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
-        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: 50000.0 };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
 
         let producto1 = Producto {
             nombre: "Agua".to_string(),
@@ -258,7 +273,7 @@ mod test {
          };
 
         let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
-        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: 50000.0 };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
 
         let producto1 = Producto {
             nombre: "Agua".to_string(),
