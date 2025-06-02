@@ -395,6 +395,11 @@ mod test {
 
         assert_eq!(reporte_por_vendedor2.ventas_vendedor.len(), 1); //Ok.
         assert_eq!(reporte_por_vendedor2.ventas_vendedor.get(&vendedor).unwrap().len(), 2); //Ok.
+
+        //REPORTE POR CATEGORÍA AHEAD:
+
+        let reporte_por_categoria = sistema_ventas.reporte_por_categoria();
+        assert_eq!(reporte_por_categoria.ventas_categoria.len(), 2); //Ok.
     }
 
 }
