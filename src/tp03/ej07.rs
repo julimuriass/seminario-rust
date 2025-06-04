@@ -1,5 +1,4 @@
 #[derive(Clone)]
-
 enum Color {
     ROJO,
     VERDE, 
@@ -24,6 +23,10 @@ struct ConsecionarioAuto {
     autos: Vec<Auto>,
 }
 
+#[derive(Clone, Debug)]
+enum ErroresPersonalizados {
+    CapacidadExcedida(String),
+}
 
 
 pub fn compare_colors(color1: &Color, color2: &Color) -> bool {
@@ -57,12 +60,12 @@ impl ConsecionarioAuto {
         }
     }
 
-    fn agregar_auto(&mut self, auto: &Auto) -> bool {
+    fn agregar_auto(&mut self, auto: &Auto) -> Result<(), ErroresPersonalizados> {
         if self.autos.len()+1 <= self.x.try_into().unwrap() {
             self.autos.push(auto.clone());
-            return true;
+            Ok(())
         } else {
-            return false;
+            Err(ErroresPersonalizados::CapacidadExcedida(format!("No se pueden agrgar más autos. Concesionario lleno :/")))
         }
     }
 
@@ -144,7 +147,8 @@ mod  test {
         let auto3= Auto::new(String::from("Cronos"), String::from("modelo X"), 1000.0, 2015, Color::ROJO);
         let auto4= Auto::new(String::from("Ferrari"), String::from("modelo R"), 1000.0, 2015, Color::ROJO);
 
-        concesionario.agregar_auto(&auto1);
+        
+        assert!(concesionario.agregar_auto(&auto1).is_ok());
         assert_eq!(concesionario.autos.len(), 1); //Added only 1 element.
 
         //Fill all available space.
@@ -153,7 +157,11 @@ mod  test {
         assert_eq!(concesionario.autos.len(), 3);
 
         //Try to add one more.
-        assert_eq!(concesionario.agregar_auto(&auto4), false);
+        match concesionario.agregar_auto(&auto4) {
+            Ok(_) => println!("Auto agregado exitosamente."),
+            Err(ErroresPersonalizados::CapacidadExcedida(msg)) => println!("Error: {}", msg),
+            Err(_) => println!("Error desconocido."),
+        }
     }
 
     #[test]
