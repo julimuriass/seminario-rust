@@ -6,8 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 
-#[derive(Clone)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 enum Color {
     ROJO,
     VERDE, 
@@ -247,7 +246,7 @@ mod  test {
     fn testear_buscar_auto() {
         let path = "src/archivo_autos.txt";
 
-        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3,  String::from(path));
+        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3, String::from(path));
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
         let auto2= Auto::new(String::from("Honda"), String::from("modelo H"), 1000.0, 2015, Color::NEGRO);
         let auto3= Auto::new(String::from("Cronos"), String::from("modelo X"), 1000.0, 2015, Color::ROJO);
