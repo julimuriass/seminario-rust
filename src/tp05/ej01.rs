@@ -1,4 +1,13 @@
+use serde::{Serialize, Deserialize};
+use core::arch;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+use std::path::PathBuf;
+
+
 #[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 enum Color {
     ROJO,
     VERDE, 
@@ -8,6 +17,7 @@ enum Color {
     NEGRO,
 }
 #[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Auto {
     color: Color,
     marca: String,
@@ -16,16 +26,20 @@ struct Auto {
     año: u32,
 }
 
+
 struct ConsecionarioAuto {
     nombre: String,
     direccion: String,
     x: u32,
     autos: Vec<Auto>,
+    archivo_autos: PathBuf, //ruta del archivo JSON.
 }
 
 #[derive(Clone, Debug)]
 enum ErroresPersonalizados {
     CapacidadExcedida(String),
+    ErrorArchivo(String),
+    AutoNoEncontrado(String),
 }
 
 
@@ -51,25 +65,48 @@ pub fn compare (auto1: &Auto, auto2: &Auto) -> bool {
 }
 
 impl ConsecionarioAuto {
-    fn new(nombre: String, direccion: String, x: u32) -> ConsecionarioAuto {
-        ConsecionarioAuto {
-            nombre,
-            direccion,
-            x,
+    fn new(nombre: String, direccion: String, x: u32, archivo_autos: String) -> ConsecionarioAuto {
+        let path = PathBuf::from(archivo_autos);
+        let mut concesionario =  ConsecionarioAuto {
+            nombre: nombre,
+            direccion: direccion,
+            x: x,
             autos: Vec::new(),
+            archivo_autos: path,
+        };
+
+        concesionario
+    }
+
+    pub fn cargar_al_archivo(&mut self, auto: &Auto) -> Result<(), ErroresPersonalizados> {
+        //Abrir el archivo en modo escritura.
+        let mut archivo = match File::create(self.archivo_autos.clone()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo en modo escritura.")))?,
+            Ok(arch) => arch,            
+        };
+
+        let auto_serializado = serde_json::to_string(&auto).unwrap();
+        match archivo.write(&auto_serializado.as_bytes()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo(format!("Error al escribir en el archivo.")))?,
+            Ok(_) => Ok(()),  
         }
     }
 
     fn agregar_auto(&mut self, auto: &Auto) -> Result<(), ErroresPersonalizados> {
         if self.autos.len()+1 <= self.x.try_into().unwrap() {
             self.autos.push(auto.clone());
+
+            //Lo agrego a mi archivo JSON.
+            self.cargar_al_archivo(&auto)?;
+
+            
             Ok(())
         } else {
             Err(ErroresPersonalizados::CapacidadExcedida(format!("No se pueden agrgar más autos. Concesionario lleno :/")))
         }
     }
 
-    fn eliminar_auto(&mut self, auto: &Auto) {
+    fn eliminar_auto(&mut self, auto: &Auto) -> Result<(), ErroresPersonalizados> {
         //Find the car I want to delete in the vec.
         let mut index_car_delete= -1;
         for i in 0.. self.autos.len() {
@@ -78,9 +115,26 @@ impl ConsecionarioAuto {
                 break;
             }  
         }
+
         //Delete the car.
-        if index_car_delete != -1 { //If I found the car to delete.
+        if index_car_delete != -1 {  //If I found the car to delete.
+            // Delete the car from the JSON file.
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&self.archivo_autos)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?;
+
             self.autos.remove(index_car_delete as usize);
+
+            //Write the updated vector back to the file.
+            let writer = std::io::BufWriter::new(&file); //Crea un nuevo BufWriter.
+
+            serde_json::to_writer(writer, &self.autos)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al escribir en el archivo: {}", e)))?;
+            Ok(())
+        } else {
+            Err(ErroresPersonalizados::AutoNoEncontrado(format!("El auto que desea eliminar no fue encontrado.")))
         }
     }
 
@@ -140,7 +194,9 @@ mod  test {
 
     #[test]
     fn testear_agregar_auto() {
-        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3);
+        let path = "src/archivo_autos.txt";
+
+        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3, String::from(path));
 
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
         let auto2= Auto::new(String::from("Honda"), String::from("modelo H"), 1000.0, 2015, Color::NEGRO);
@@ -166,7 +222,9 @@ mod  test {
 
     #[test]
     fn testear_eliminar_auto() {
-        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3);
+        let path = "src/archivo_autos.txt";
+
+        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3,  String::from(path));
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
         let auto2= Auto::new(String::from("Honda"), String::from("modelo H"), 1000.0, 2015, Color::NEGRO);
 
@@ -187,7 +245,9 @@ mod  test {
     
     #[test]
     fn testear_buscar_auto() {
-        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3);
+        let path = "src/archivo_autos.txt";
+
+        let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3,  String::from(path));
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
         let auto2= Auto::new(String::from("Honda"), String::from("modelo H"), 1000.0, 2015, Color::NEGRO);
         let auto3= Auto::new(String::from("Cronos"), String::from("modelo X"), 1000.0, 2015, Color::ROJO);
