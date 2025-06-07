@@ -351,6 +351,21 @@ mod tests {
         assert_eq!(atencion.clone().unwrap().fecha.unwrap().mes, 12);
         assert_eq!(atencion.clone().unwrap().fecha.unwrap().dia, 24);
     }
+
+    #[test]
+    fn test_eliminar_atencion() {
+        let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6);
+        let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
+        let mut fecha = crear_fecha();
+
+        vet.agregar_nueva_mascota(mascota.clone(), fecha);
+        let mut atencion = vet.buscar_atencion(String::from("Rocky"), String::from("Juan Perez"), 12345678);
+
+        assert_eq!(vet.atenciones.len(), 1); //Estado inicial.
+
+        vet.eliminar_atencion(&atencion.unwrap());
+        assert_eq!(vet.atenciones.len(), 0); //Ok.
+    }
 }
 
 
