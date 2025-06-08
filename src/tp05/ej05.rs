@@ -540,4 +540,18 @@ mod test {
         assert!(suscripcion1.downgrade().is_ok());
         assert_eq!(suscripcion1.tipo.soy_clasic(), true);
     }
+
+    #[test]
+    fn crear_plataforma() {
+        let mut plataforma:StreamingRust = StreamingRust::crear_plataforma();
+        assert!(plataforma.usuarios.is_empty()); //Ok. Se crea con el vector de usuarios vacío.
+
+        let mut suscripcion = Suscripcion::new(TipoSuscripcion::Clasic, 3, "12/9/2020".to_string());
+
+        let mut user = plataforma.crear_usuario(&suscripcion, &MedioPago::Cripto { tipo_cripto: "Bitcoin".to_string() }, 123, "username".to_string(), "nombre".to_string(), "apellido".to_string(), "email".to_string());
+        
+        assert_ne!(plataforma.usuarios.is_empty(), true); //Ok.
+        assert_eq!(plataforma.usuarios.len(), 1); //Ok.
+    } 
+
 }
