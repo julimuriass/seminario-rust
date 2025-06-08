@@ -1,4 +1,5 @@
-#[derive(Clone)]
+use serde::{Serialize, Deserialize};
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Fecha {
     pub dia: u32,
     pub mes: u32,

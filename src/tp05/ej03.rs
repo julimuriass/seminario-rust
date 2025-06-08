@@ -1,9 +1,15 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, path::PathBuf};
 use crate::tp03::ej03::Fecha;
 
+use serde::{Serialize, Deserialize};
+use core::arch;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::path::Path;
 
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 enum TipoAnimal {
     PERRO,
     GATO,
@@ -17,9 +23,10 @@ struct Veterinaria {
     id: i32,
     atenciones: VecDeque<Atencion>,
     atenciones_realizadas: Vec<Atencion>,
+    archivo_atenciones: PathBuf,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Atencion {
     mascota: Mascota,
     diagnostico_final: String,
@@ -27,7 +34,7 @@ struct Atencion {
     fecha: Option<Fecha>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Mascota {
     nombre: String,
     edad: String,
@@ -35,7 +42,7 @@ struct Mascota {
     dueño: Dueño,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Dueño {
     nombre: String,
     direccion: String,
@@ -82,18 +89,37 @@ pub fn compare_atencion(atencion1: &Atencion, atencion2: &Atencion) -> bool {
     compare_pets(&atencion1.mascota, &atencion2.mascota)
 }
 
+enum ErroresPersonalizados {
+    ErrorArchivo,
+}
+
 impl Veterinaria {
-    fn new(nombre: String, direccion: String, id: i32) -> Veterinaria {
+    fn new(nombre: String, direccion: String, id: i32, archivo_atenciones: String) -> Veterinaria {
+        let path = PathBuf::from(archivo_atenciones);
         Veterinaria {
             nombre,
             direccion,
             id,
             atenciones: VecDeque::new(),
             atenciones_realizadas: Vec::new(),
+            archivo_atenciones: path,
         }
     }
 
-    fn agregar_nueva_mascota(&mut self, mascota: Mascota, fecha: Option<Fecha>) {
+    pub fn cargar_al_archivo(&mut self, atencion: &Atencion) -> Result<(), ErroresPersonalizados> {
+        let mut archivo: File = match File::create(self.archivo_atenciones.clone()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };
+
+        let atencion_serializada = serde_json::to_string(&atencion).unwrap();
+        match archivo.write(&atencion_serializada.as_bytes()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
+            Ok(_) => Ok(()),
+        }
+    }
+
+    pub fn agregar_nueva_mascota(&mut self, mascota: Mascota, fecha: Option<Fecha>) {
         let nueva_atencion = Atencion {
             mascota,
             diagnostico_final: String::new(),
@@ -101,7 +127,8 @@ impl Veterinaria {
             fecha,
         };
 
-        self.atenciones.push_back(nueva_atencion);
+        self.atenciones.push_back(nueva_atencion.clone());
+        self.cargar_al_archivo(&nueva_atencion.clone());
     }
 
     fn agregar_mascota_maxima_prioridad(&mut self, mascota: Mascota, fecha: Option<Fecha>) {
@@ -112,7 +139,8 @@ impl Veterinaria {
             fecha,
         };
 
-        self.atenciones.push_front(nueva_atencion);
+        self.atenciones.push_front(nueva_atencion.clone());
+        self.cargar_al_archivo(&nueva_atencion.clone());
     }
 
     fn atender_mascota(&mut self) -> Option<Mascota>{
