@@ -198,7 +198,7 @@ impl Usuario {
     fn downgrade_suscripcion(&mut self) -> Result<(), String> {
         match self.obtener_suscripcion_activa_mutable() {
             Some(suscripcion) => {
-                suscripcion.downgrade();
+                suscripcion.downgrade()?;
                 Ok(())
             }
             None => Err("No hay una suscripción activa para degradar.".to_string())
@@ -240,11 +240,13 @@ impl StreamingRust {
         }
     }
 
-    pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), String> {
         //Given an user downgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
-            user.downgrade_suscripcion(); //Downgrade subscription.
+            user.downgrade_suscripcion()?; //Downgrade subscription.
+            return Ok(());
         }
+        Err("No se encontró el usuario".to_string())
     }
 
     pub fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
@@ -553,5 +555,54 @@ mod test {
         assert_ne!(plataforma.usuarios.is_empty(), true); //Ok.
         assert_eq!(plataforma.usuarios.len(), 1); //Ok.
     } 
+
+    #[test]
+    fn test_downgrade() {
+        let mut user0 = Usuario {
+            username: "sus0".to_string(),
+            email: "sus0@email".to_string(),
+            apellido: "0".to_string(),
+            id: 1,
+            nombre: "sus0".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Basic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        let mut usuarios = vec![user0.clone()];
+        let mut plataforma = StreamingRust {usuarios};
+
+        assert!(plataforma.downgrade_suscripcion(&mut user0).is_err()); //Ok.
+
+
+        let mut user1 = Usuario {
+            username: "sus1".to_string(),
+            email: "sus1@email".to_string(),
+            apellido: "1".to_string(),
+            id: 2,
+            nombre: "sus1".to_string(),
+            medio_pago: MedioPago::MercadoPago { cbu: 124 },
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Super,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: true,
+            }],
+        };
+
+        plataforma.usuarios.push(user1.clone());
+        assert!(plataforma.downgrade_suscripcion(&mut user1).is_ok());
+
+        // Synchronize user0 with the updated user.
+        if let Some(updated_user) = plataforma.usuarios.iter().find(|u| u.id == user1.id) {
+            user1.suscripciones = updated_user.suscripciones.clone();
+        }
+
+        assert!(user1.suscripciones.iter().any(|s| s.tipo == TipoSuscripcion::Clasic)); //Ok.
+    }
 
 }
