@@ -605,4 +605,29 @@ mod test {
         assert!(user1.suscripciones.iter().any(|s| s.tipo == TipoSuscripcion::Clasic)); //Ok.
     }
 
+    #[test]
+    fn test_usuario_features() {
+        let mut user0 = Usuario {
+            username: "sus0".to_string(),
+            email: "sus0@email".to_string(),
+            apellido: "0".to_string(),
+            id: 1,
+            nombre: "sus0".to_string(),
+            medio_pago: MedioPago::Efectivo,
+            suscripciones: vec![Suscripcion {
+                tipo: TipoSuscripcion::Basic,
+                duracion_meses: 8,
+                fecha_inicio: "1/1/2025".to_string(),
+                activa: false,
+            }],
+        };
+
+        assert!(user0.cancelar_suscripcion().is_err()); //Ok.
+        assert!(user0.upgrade_suscripcion().is_err()); //Ok.
+        assert!(user0.downgrade_suscripcion().is_err()); //Ok.
+
+
+
+    }
+
 }
