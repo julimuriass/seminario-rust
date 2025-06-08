@@ -1,7 +1,15 @@
 use std::collections::HashMap;
 use crate::tp03::ej03::Fecha;
 
-#[derive(Clone)]
+use serde::{Serialize, Deserialize};
+use core::arch;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::path::Path;
+use std::path::PathBuf;
+
+#[derive(Clone, Serialize, Deserialize)]
 enum Genero {
     Novela,
     Infantil,
@@ -9,7 +17,7 @@ enum Genero {
     Otros
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 enum EstadoPrestamo {
     Devuelto,
     EnPrestamo,
@@ -21,9 +29,11 @@ struct Biblioteca {
     direccion: String,
     libros: HashMap<u32, Libro>, //Key: ISBN.
     prestamos: Vec<Prestamo>,
+    archivo_libros: PathBuf,
+    archivo_prestamos: PathBuf,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Libro {
     isbn: u32,
     titulo: String,
@@ -33,7 +43,7 @@ struct Libro {
     genero: Genero,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Prestamo {
     isbn_libro: u32,
     cliente: Cliente,
@@ -42,7 +52,7 @@ struct Prestamo {
     estado: EstadoPrestamo,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Cliente {
     nombre: String,
     telefono: u32,
@@ -62,7 +72,36 @@ pub fn compare_clientes (cliente1: &Cliente, cliente2: &Cliente) -> bool {
     cliente1.telefono == cliente2.telefono
 }
 
+enum ErroresPersonalizados {
+    ErrorArchivo,
+}
+
 impl Biblioteca {
+
+    pub fn cargar_al_archivo_libros(&mut self) -> Result<(), ErroresPersonalizados> {
+        let mut archivo_libros:File = match File::create(self.archivo_libros.clone()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };
+
+        serde_json::to_writer(&archivo_libros, &self.libros)
+            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        Ok(())
+    }
+
+    pub fn cargar_al_archivo_prestamos(&mut self) -> Result<(), ErroresPersonalizados> {
+        let mut archivo_prestamos:File = match File::create(self.archivo_prestamos.clone()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };
+
+        serde_json::to_writer(&archivo_prestamos, &self.prestamos)
+            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        Ok(())
+    }
+
     fn obtener_cantidad_copias (&self, libro: &Libro) -> u32 {
         if let Some(book) = self.libros.get(&libro.isbn) {
             return book.copias_disponiles;
@@ -74,13 +113,15 @@ impl Biblioteca {
     fn decrementar_cantidad_copias (&mut self, libro: &Libro) {
         if let Some(book) = self.libros.get_mut(&libro.isbn) {
             book.copias_disponiles -= 1;
-        }
+        } 
+        //Mod arch libro
     }
 
     fn incrementar_cantidad_copias (&mut self, libro: &Libro) {
         if let Some(book) = self.libros.get_mut(&libro.isbn) {
             book.copias_disponiles += 1;            
         }
+        //Mod arch libro
     }
 
     fn contar_prestamos_cliente (&self, cliente: &Cliente) -> u32 {
@@ -110,6 +151,8 @@ impl Biblioteca {
             }
         }
         false
+
+        //Mod arch prest
     }
 
 
@@ -166,6 +209,9 @@ impl Biblioteca {
                 break;
             }
         }
+
+        //Mod arch libro (copias)
+        //Mod arch prest.
     }
 }
 
@@ -183,12 +229,18 @@ mod test {
             numero_paginas: 200,
             genero: Genero::Novela,
         };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
+
         let mut biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "Arg".to_string(),
             libros: HashMap::new(),
             prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
     
         //Insertar libro.
@@ -220,11 +272,17 @@ mod test {
             genero: Genero::Novela,
         };
     
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
         let mut biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "Arg".to_string(),
             libros: HashMap::new(),
             prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
@@ -243,12 +301,17 @@ mod test {
             numero_paginas: 200,
             genero: Genero::Novela,
         };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
         let mut biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "Arg".to_string(),
             libros: HashMap::new(),
             prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
@@ -298,12 +361,17 @@ mod test {
             fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },
             estado: EstadoPrestamo::Devuelto,
         };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
         let biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "Calle Falsa".to_string(),
             libros: HashMap::new(),
             prestamos: vec![prestamo1, prestamo2],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
     
         let cantidad = biblioteca.contar_prestamos_cliente(&cliente);
@@ -327,11 +395,17 @@ mod test {
             genero: Genero::Novela,
         };
     
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
         let mut biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "Calle Test".to_string(),
             libros: HashMap::new(),
             prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
     
         biblioteca.libros.insert(libro.isbn, libro.clone());
@@ -410,11 +484,16 @@ mod test {
             estado: EstadoPrestamo::Devuelto,
         };
 
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
         let biblioteca = Biblioteca {
             nombre: "Biblioteca Test".to_string(),
             direccion: "arg".to_string(),
             libros: HashMap::new(),
             prestamos: vec![prestamo_proximo.clone(), prestamo_lejano, prestamo_devuelto],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
 
         let prestamos_vencer = biblioteca.prestamos_vencer(5, &fecha_actual);
@@ -467,6 +546,9 @@ mod test {
             estado: EstadoPrestamo::Devuelto,
         };
 
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
         let biblioteca = Biblioteca {
             nombre: "Biblio Test".to_string(),
             direccion: "Dirección".to_string(),
@@ -476,6 +558,8 @@ mod test {
                 prestamo_no_vencido,
                 prestamo_devuelto,
             ],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
 
         let vencidos = biblioteca.prestamos_vencidos(&fecha_actual);
@@ -516,6 +600,9 @@ mod test {
             fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },
             estado: EstadoPrestamo::EnPrestamo,
         };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
 
         let biblioteca = Biblioteca {
@@ -523,6 +610,8 @@ mod test {
             direccion: "Calle Falsa".to_string(),
             libros: HashMap::new(),
             prestamos: vec![prestamo1],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
     
         assert!(biblioteca.buscar_prestamo(&libro1, &cliente).is_some());
@@ -557,6 +646,9 @@ mod test {
             fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },  // Aún no devuelto
             estado: EstadoPrestamo::EnPrestamo,
         };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
         
         let mut biblioteca = Biblioteca {
@@ -564,6 +656,8 @@ mod test {
             direccion: "arg".to_string(),
             libros: HashMap::new(),
             prestamos: vec![prestamo],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
         };
 
         biblioteca.devolver_libro(&libro, &cliente);//Lo devuelvo.
@@ -576,7 +670,86 @@ mod test {
             }
         };
         assert_eq!(esta_devuelto, true);
+    }
 
-        
+    //Tests nuevos.
+    #[test]
+    fn test_cargar_al_archivo_libros() {
+        let libro1 = Libro {
+            isbn: 1,
+            titulo: "Libro 1".to_string(),
+            copias_disponiles: 3,
+            autor: "Autor 1".to_string(),
+            numero_paginas: 100,
+            genero: Genero::Novela,
+        };
+    
+        let libro2 = Libro {
+            isbn: 2,
+            titulo: "Libro 2".to_string(),
+            copias_disponiles: 2,
+            autor: "Autor 2".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Infantil,
+        };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
+        let mut biblioteca = Biblioteca {
+            nombre: "Biblioteca Test".to_string(),
+            direccion: "Calle Falsa".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![],
+            archivo_libros: path_books.clone().into(),
+            archivo_prestamos: path_prestamos.clone().into(),
+        };
+
+        biblioteca.libros.insert(1, libro1.clone());
+        biblioteca.libros.insert(2, libro2.clone());
+
+        assert_eq!(biblioteca.libros.len(), 2);
+        assert!(biblioteca.cargar_al_archivo_libros().is_ok()); //Ok.
+    }
+
+    #[test]
+    fn test_cargar_al_archivo_prestamos() {
+        let cliente = Cliente {
+            nombre: "Ana".to_string(),
+            telefono: 123456,
+            correo: "ana@mail.com".to_string(),
+        };
+    
+        let libro1 = Libro {
+            isbn: 1,
+            titulo: "Libro 1".to_string(),
+            copias_disponiles: 3,
+            autor: "Autor 1".to_string(),
+            numero_paginas: 100,
+            genero: Genero::Novela,
+        };
+    
+        let prestamo1 = Prestamo {
+            isbn_libro: libro1.isbn,
+            cliente: cliente.clone(),
+            fecha_vencimiento: Fecha { dia: 1, mes: 1, año: 2025 },
+            fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },
+            estado: EstadoPrestamo::EnPrestamo,
+        };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+    
+
+        let mut biblioteca = Biblioteca {
+            nombre: "Biblioteca Test".to_string(),
+            direccion: "Calle Falsa".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![prestamo1],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
+        };
+
+        assert!(biblioteca.cargar_al_archivo_prestamos().is_ok());
     }
 }

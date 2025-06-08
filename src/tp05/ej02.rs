@@ -223,7 +223,7 @@ impl PlayList {
 
     #[test]
     fn testear_agregar_cancion() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
         let cancion2= Cancion::new(String::from("Cancion2"), String::from("juancito"), Genero::JAZZ);
@@ -238,7 +238,7 @@ impl PlayList {
 
     #[test]
     fn testear_eliminar_cancion() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
@@ -258,7 +258,7 @@ impl PlayList {
 
     #[test]
     fn testear_buscar_cancion() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
         
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
@@ -274,7 +274,7 @@ impl PlayList {
 
     #[test]
     fn testear_eliminar_canciones() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
@@ -291,7 +291,7 @@ impl PlayList {
 
     #[test]
     fn testear_mover_cancion() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
@@ -321,7 +321,7 @@ impl PlayList {
 
     #[test]
     fn testear_cambiar_nombre_playlist() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         //Check that.
@@ -334,7 +334,7 @@ impl PlayList {
 
     #[test]
     fn testear_canciones_mismo_genero() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);
@@ -359,7 +359,7 @@ impl PlayList {
 
     #[test]
     fn testear_canciones_mismo_artista() {
-        let path = "src/archivo_canciones.txt";
+        let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
         let cancion1= Cancion::new(String::from("Cancion1"), String::from("pepe"), Genero::JAZZ);

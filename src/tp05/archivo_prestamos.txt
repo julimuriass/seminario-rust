@@ -1,0 +1,1 @@
+[{"isbn_libro":1,"cliente":{"nombre":"Ana","telefono":123456,"correo":"ana@mail.com"},"fecha_vencimiento":{"dia":1,"mes":1,"año":2025},"fecha_devolucion":{"dia":0,"mes":0,"año":0},"estado":"EnPrestamo"}]

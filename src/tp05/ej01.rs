@@ -193,7 +193,7 @@ mod  test {
 
     #[test]
     fn testear_agregar_auto() {
-        let path = "src/archivo_autos.txt";
+        let path = "src/tp05/archivo_autos.txt";
 
         let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3, String::from(path));
 
@@ -221,7 +221,7 @@ mod  test {
 
     #[test]
     fn testear_eliminar_auto() {
-        let path = "src/archivo_autos.txt";
+        let path = "src/tp05/archivo_autos.txt";
 
         let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3,  String::from(path));
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
@@ -244,7 +244,7 @@ mod  test {
     
     #[test]
     fn testear_buscar_auto() {
-        let path = "src/archivo_autos.txt";
+        let path = "src/tp05/archivo_autos.txt";
 
         let mut concesionario= ConsecionarioAuto::new(String::from("Juli cars :D"), String::from("Argentina"), 3, String::from(path));
         let auto1= Auto::new(String::from("BMW"), String::from("modelo J"), 1000.0, 2015, Color::AMARILLO);
