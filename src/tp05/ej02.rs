@@ -90,7 +90,7 @@ impl PlayList {
 
     fn agregar_cancion(&mut self, cancion: &Cancion) {
         self.canciones.push(cancion.clone());
-        self.cargar_al_archivo(cancion);
+        self.cargar_al_archivo(cancion); //Qué hago con el unused result?
 
     }
 
@@ -103,7 +103,7 @@ impl PlayList {
                 break;
             }  
         }
-        //Delete the car.
+        //Delete the car. 
         if index_song_delete != -1 { //If I found the car to delete.
 
             let file = std::fs::OpenOptions::new() //Me armo mi file nuevo.
@@ -209,7 +209,7 @@ impl PlayList {
             .open(self.archivo_canciones.clone())
             .map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?;
 
-        archivo.write_all(b"[]").map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?; //b"[]" to write an empty JSON array to the file
+        archivo.write_all(b"[]").map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?; //b"[]" to write an empty JSON array to the file. Ask if okay???
 
         Ok(())
     }
