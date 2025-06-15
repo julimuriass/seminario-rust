@@ -96,7 +96,8 @@ impl ConsecionarioAuto {
             self.autos.push(auto.clone());
 
             //Lo agrego a mi archivo JSON.
-            self.cargar_al_archivo(&auto)?;
+            self.cargar_al_archivo(&auto)?; //Está bien dejar que el error se propague acá?
+            
 
             
             Ok(())
