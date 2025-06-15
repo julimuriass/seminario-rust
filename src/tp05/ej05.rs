@@ -209,6 +209,7 @@ impl Usuario {
 #[derive(Clone, Debug)]
 struct StreamingRust {
     usuarios: Vec<Usuario>, 
+    
 }
 
 impl StreamingRust {

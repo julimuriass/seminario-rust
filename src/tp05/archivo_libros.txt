@@ -1,1 +1,1 @@
-{}
+{"2":{"isbn":2,"titulo":"Libro 2","copias_disponiles":2,"autor":"Autor 2","numero_paginas":200,"genero":"Infantil"},"1":{"isbn":1,"titulo":"Libro 1","copias_disponiles":3,"autor":"Autor 1","numero_paginas":100,"genero":"Novela"}}

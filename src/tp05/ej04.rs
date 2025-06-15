@@ -74,6 +74,7 @@ pub fn compare_clientes (cliente1: &Cliente, cliente2: &Cliente) -> bool {
 
 enum ErroresPersonalizados {
     ErrorArchivo,
+    LibroNoEncontrado,
 }
 
 impl Biblioteca {
@@ -110,18 +111,41 @@ impl Biblioteca {
         } 
     }
 
+    pub fn modificar_campo_json_libro(&mut self, isbn: u32, nuevas_copias: u32) -> Result<(), ErroresPersonalizados> {
+        //Open the json file.
+        let file = File::open(self.archivo_libros.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?; //??Si no le pongo el e me marca como error, hay algo que podría hacer o está bien así?
+        
+        let mut libros_deserializados: HashMap<u32, Libro>  = serde_json::from_reader(file)
+            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        //Modify the specific field.
+        if let Some(libro) = libros_deserializados.get_mut(&isbn) {
+            libro.copias_disponiles = nuevas_copias;
+        } else {
+            return Err(ErroresPersonalizados::LibroNoEncontrado);
+        }
+
+        //Serialize the updated data structure back into JSON format.
+        let file = File::create(self.archivo_libros.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+        serde_json::to_writer(file, &libros_deserializados).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        Ok(())
+    }
+
     fn decrementar_cantidad_copias (&mut self, libro: &Libro) {
-        if let Some(book) = self.libros.get_mut(&libro.isbn) {
+        if let Some(book) = self.clone().libros.get_mut(&libro.isbn) {
             book.copias_disponiles -= 1;
-        } 
-        //Mod arch libro
+            //Mod arch libro.
+            self.modificar_campo_json_libro(book.isbn, book.copias_disponiles);
+        }    
     }
 
     fn incrementar_cantidad_copias (&mut self, libro: &Libro) {
         if let Some(book) = self.libros.get_mut(&libro.isbn) {
-            book.copias_disponiles += 1;            
+            book.copias_disponiles += 1;       
+            //Mod arch libro
+            self.modificar_campo_json_libro(book.isbn, book.copias_disponiles); //Cómo hagooo????
         }
-        //Mod arch libro
     }
 
     fn contar_prestamos_cliente (&self, cliente: &Cliente) -> u32 {
@@ -293,7 +317,7 @@ mod test {
 
     #[test]
     fn test_incrementar_copias() {
-        let libro = Libro {
+        let mut libro = Libro {
             isbn: 100,
             titulo: "Test Libro".to_string(),
             copias_disponiles: 7,
@@ -316,8 +340,13 @@ mod test {
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
         biblioteca.incrementar_cantidad_copias(&libro);
+
+         // Synchronize libro with the updated libro.
+        /*if let Some(updated_book) = biblioteca.libros.get(&libro.clone().isbn) {
+            libro = updated_book.clone();
+         }*/
+
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 8);
-        
     }
 
     #[test]
