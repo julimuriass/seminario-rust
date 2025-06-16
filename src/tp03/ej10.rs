@@ -540,7 +540,7 @@ mod test {
         };
     
         
-        let libro = Libro {
+        let mut libro = Libro {
             isbn: 42,
             titulo: "pepe".to_string(),
             copias_disponiles: 5,  // Inicialmente hay 5 copias
@@ -566,6 +566,7 @@ mod test {
             prestamos: vec![prestamo],
         };
 
+        biblioteca.libros.insert(libro.isbn.clone(), libro.clone());
         biblioteca.devolver_libro(&libro, &cliente);//Lo devuelvo.
         let libro_devuelto = biblioteca.buscar_prestamo(&libro, &cliente);
         let esta_devuelto = {
@@ -575,7 +576,11 @@ mod test {
                 
             }
         };
-        assert_eq!(esta_devuelto, true);
+
+        //println!("{}", biblioteca.libros.len());
+        let updated_book = biblioteca.libros.get(&libro.isbn.clone());
+        libro = updated_book.unwrap().clone();
+        assert_eq!(libro.copias_disponiles, 6); //Ok.
 
         
     }

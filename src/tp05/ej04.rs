@@ -132,20 +132,32 @@ impl Biblioteca {
         Ok(())
     }
 
-    fn decrementar_cantidad_copias (&mut self, libro: &Libro) {
-        if let Some(book) = self.clone().libros.get_mut(&libro.isbn) {
-            book.copias_disponiles -= 1;
-            //Mod arch libro.
-            self.modificar_campo_json_libro(book.isbn, book.copias_disponiles);
-        }    
+    fn decrementar_cantidad_copias (&mut self, libro: &Libro) -> Result<(), ErroresPersonalizados> {
+        let (isbn, copias) = {
+            if let Some(book) = self.libros.get_mut(&libro.isbn) {
+                book.copias_disponiles -= 1;
+                (book.isbn, book.copias_disponiles)
+            } else {
+                return Err(ErroresPersonalizados::LibroNoEncontrado); 
+            }
+        }; // Mutable borrow ends here
+        
+        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto?
+        Ok(())
     }
 
-    fn incrementar_cantidad_copias (&mut self, libro: &Libro) {
-        if let Some(book) = self.libros.get_mut(&libro.isbn) {
-            book.copias_disponiles += 1;       
-            //Mod arch libro
-            self.modificar_campo_json_libro(book.isbn, book.copias_disponiles); //Cómo hagooo????
-        }
+    fn incrementar_cantidad_copias (&mut self, libro: &Libro) -> Result<(), ErroresPersonalizados> {
+        let (isbn, copias) = {
+            if let Some(book) = self.libros.get_mut(&libro.isbn) {
+                book.copias_disponiles += 1;
+                (book.isbn, book.copias_disponiles)
+            } else {
+                return Err(ErroresPersonalizados::LibroNoEncontrado); 
+            }
+        }; // Mutable borrow ends here
+        
+        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto?
+        Ok(())
     }
 
     fn contar_prestamos_cliente (&self, cliente: &Cliente) -> u32 {
@@ -187,9 +199,7 @@ impl Biblioteca {
         let mut lista_prestamos_vencer = Vec::new();
 
         for prestamo in self.prestamos.iter() {
-            let fecha_igual = prestamo.fecha_vencimiento.dia == fecha_actual.dia &&
-                          prestamo.fecha_vencimiento.mes == fecha_actual.mes &&
-                          prestamo.fecha_vencimiento.año == fecha_actual.año;
+            let fecha_igual = prestamo.fecha_vencimiento.dia == fecha_actual.dia && prestamo.fecha_vencimiento.mes == fecha_actual.mes && prestamo.fecha_vencimiento.año == fecha_actual.año;
 
             if no_devolvio(&prestamo.estado) &&
             !prestamo.fecha_vencimiento.es_mayor(&fecha_limite) &&  // fecha_vencimiento <= fecha_limite
@@ -296,7 +306,6 @@ mod test {
             genero: Genero::Novela,
         };
     
-
         let path_books = "src/tp05/archivo_libros.txt".to_string();
         let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
 
@@ -312,7 +321,6 @@ mod test {
         biblioteca.libros.insert(libro.isbn, libro.clone());
         biblioteca.decrementar_cantidad_copias(&libro);
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 6);
-        
     }
 
     #[test]
@@ -658,7 +666,7 @@ mod test {
         };
     
         
-        let libro = Libro {
+        let mut libro = Libro {
             isbn: 42,
             titulo: "pepe".to_string(),
             copias_disponiles: 5,  // Inicialmente hay 5 copias
@@ -669,7 +677,7 @@ mod test {
     
         
         let prestamo = Prestamo {
-            isbn_libro: libro.isbn,
+            isbn_libro: libro.isbn.clone(),
             cliente: cliente.clone(),
             fecha_vencimiento: Fecha { dia: 15, mes: 6, año: 2025 },
             fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },  // Aún no devuelto
@@ -689,6 +697,7 @@ mod test {
             archivo_prestamos: path_prestamos.into(),
         };
 
+        biblioteca.libros.insert(libro.isbn.clone(), libro.clone());
         biblioteca.devolver_libro(&libro, &cliente);//Lo devuelvo.
         let libro_devuelto = biblioteca.buscar_prestamo(&libro, &cliente);
         let esta_devuelto = {
@@ -698,6 +707,12 @@ mod test {
                 
             }
         };
+
+        //println!("{}", biblioteca.libros.len());
+        let updated_book = biblioteca.libros.get(&libro.isbn.clone());
+        libro = updated_book.unwrap().clone();
+        assert_eq!(libro.copias_disponiles, 6); //Ok.
+
         assert_eq!(esta_devuelto, true);
     }
 
@@ -780,5 +795,35 @@ mod test {
         };
 
         assert!(biblioteca.cargar_al_archivo_prestamos().is_ok());
+    }
+
+    #[test]
+    fn test_decrementar_copias_nuevo() {
+        let libro = Libro {
+            isbn: 100,
+            titulo: "Test Libro".to_string(),
+            copias_disponiles: 7,
+            autor: "Autor X".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Novela,
+        };
+    
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
+        let mut biblioteca = Biblioteca {
+            nombre: "Biblioteca Test".to_string(),
+            direccion: "Arg".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
+        };
+
+        biblioteca.libros.insert(libro.isbn, libro.clone());
+
+        //No se modifica el archivo???
+        assert!(biblioteca.decrementar_cantidad_copias(&libro).is_ok());
+        assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 6);
     }
 }
