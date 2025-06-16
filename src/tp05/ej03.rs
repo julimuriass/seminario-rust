@@ -17,6 +17,7 @@ enum TipoAnimal {
     OTROS,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 struct Veterinaria {
     nombre: String,
     direccion: String,
@@ -89,9 +90,11 @@ pub fn compare_atencion(atencion1: &Atencion, atencion2: &Atencion) -> bool {
     compare_pets(&atencion1.mascota, &atencion2.mascota)
 }
 
+
 enum ErroresPersonalizados {
     ErrorArchivo,
     MascotaNoEncontrada,
+    AtencionNoEncontrada,
 }
 
 impl Veterinaria {
@@ -224,7 +227,7 @@ impl Veterinaria {
         None
     }
 
-    fn modificar_diagnostico(&mut self, diagnostico_nuevo: String, atencion: &Atencion) {
+    fn modificar_diagnostico(&mut self, diagnostico_nuevo: String, atencion: &Atencion) -> Result<(), ErroresPersonalizados>{
         //Buscar la atención.
         let mut indice_atencion:i32= -1;
         for i in 0..self.atenciones.len() {
@@ -236,10 +239,24 @@ impl Veterinaria {
         //Modify diagnostic.
         if indice_atencion!= -1 { //If I found the attention.
             self.atenciones[indice_atencion as usize].diagnostico_final = diagnostico_nuevo;
+            //Modify the JSON file. 
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&self.archivo_atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            let writer = std::io::BufWriter::new(&file);
+            serde_json::to_writer(writer, &self.atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            Ok(())
+        } else {
+            return Err(ErroresPersonalizados::MascotaNoEncontrada);
         }
     }
 
-    fn modificar_fecha(&mut self, fecha_nueva: Option<Fecha>, atencion: &Atencion) {
+    fn modificar_fecha(&mut self, fecha_nueva: Option<Fecha>, atencion: &Atencion) -> Result<(), ErroresPersonalizados> {
         //Buscar la atención.
         let mut indice_atencion:i32= -1;
         for i in 0..self.atenciones.len() {
@@ -251,10 +268,25 @@ impl Veterinaria {
 
         if indice_atencion != -1 { 
             self.atenciones[indice_atencion as usize].fecha = fecha_nueva;
+
+            //Modify the JSON file. 
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&self.archivo_atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            let writer = std::io::BufWriter::new(&file);
+            serde_json::to_writer(writer, &self.atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            Ok(())
+        } else {
+            return Err(ErroresPersonalizados::MascotaNoEncontrada);
         }
     }
 
-    fn eliminar_atencion (&mut self, atencion: &Atencion) {
+    fn eliminar_atencion (&mut self, atencion: &Atencion) -> Result<(), ErroresPersonalizados> {
         //Buscar la atención.
         let mut indice_atencion:i32= -1;
         for i in 0..self.atenciones.len() {
@@ -266,6 +298,20 @@ impl Veterinaria {
 
         if indice_atencion != -1 {
             self.atenciones.remove(indice_atencion as usize);
+            //Modify the JSON file. 
+            let file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&self.archivo_atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            let writer = std::io::BufWriter::new(&file);
+            serde_json::to_writer(writer, &self.atenciones)
+                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+            Ok(())
+        } else {
+            return Err(ErroresPersonalizados::MascotaNoEncontrada);
         }
     }
 }
@@ -453,6 +499,45 @@ mod tests {
 
         assert_eq!(vet.atenciones.front().unwrap().mascota.nombre, "Caballo");
         //En el archivo aparece Caballo primero!. Ok.
+    }
+
+    #[test]
+    fn test_eliminar_mascota_nuevo() {
+        let path = "src/tp05/archivo_atenciones.txt";
+        let mut vet = Veterinaria::new(String::from("Vet 5"), String::from("Zoológico"), 5, String::from(path));
+        let mascota = crear_mascota("Milo", TipoAnimal::GATO);
+
+        vet.agregar_nueva_mascota(mascota.clone(), None);
+        assert_eq!(vet.atenciones.len(), 1);
+
+        assert!(vet.eliminar_mascota(mascota).is_ok());
+        assert_eq!(vet.atenciones.len(), 0);
+
+        let mascota2 = crear_mascota("Pepe", TipoAnimal::GATO);
+        assert!(vet.eliminar_mascota(mascota2.clone()).is_err());
+
+    }
+
+    #[test]
+    fn eliminar_atencion_nuevo() {
+        let path = "src/tp05/archivo_atenciones.txt";
+        let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
+        let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
+        let mut fecha = crear_fecha();
+        let mascota2 = crear_mascota("Pepe", TipoAnimal::PERRO);
+
+        vet.agregar_nueva_mascota(mascota.clone(), fecha);
+        let mut atencion = vet.buscar_atencion(String::from("Rocky"), String::from("Juan Perez"), 12345678);
+
+        assert_eq!(vet.atenciones.len(), 1); //Estado inicial.
+
+        assert!(vet.eliminar_atencion(&atencion.unwrap()).is_ok());
+        assert_eq!(vet.atenciones.len(), 0); //Ok.
+
+        
+        /*let mut atencion2= Atencion { mascota2.clone(), String::from("fiebre"), String::from("antibioticos"), None}; //Por qué no me deja???
+        assert!(vet.eliminar_atencion(&atencion2).is_err());*/
+
     }
 }
 
