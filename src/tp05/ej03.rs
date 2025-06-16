@@ -436,13 +436,13 @@ mod tests {
         let mut atencion = vet.buscar_atencion(String::from("Rocky"), String::from("Juan Perez"), 12345678);
 
         assert!(atencion.is_some());
-        vet.modificar_diagnostico("Fiebre".to_string(), &atencion.unwrap());
+        vet.modificar_diagnostico("Resfrio".to_string(), &atencion.unwrap());
 
         let updated_atencion =  vet.buscar_atencion(String::from("Rocky"), String::from("Juan Perez"), 12345678);
         assert!(updated_atencion.is_some());
         atencion = Some(updated_atencion.unwrap());
 
-        assert_eq!(atencion.unwrap().diagnostico_final, String::from("Fiebre")); //Ok.
+        assert_eq!(atencion.unwrap().diagnostico_final, String::from("Resfrio")); //Ok.
     }
 
     #[test]
