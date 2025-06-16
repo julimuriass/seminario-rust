@@ -136,6 +136,31 @@ impl Biblioteca {
         Ok(())
     }
 
+    pub fn modificar_campo_json_prestmo(&mut self, estado: &EstadoPrestamo, cliente: &Cliente, isbn: &u32) -> Result<(), ErroresPersonalizados> {
+        //Open the json file.
+        
+        let file = File::open(self.archivo_prestamos.clone()).map_err(|_| ErroresPersonalizados::ErrorArchivo)?; 
+        
+        let mut prestamos_deserializados: Vec<Prestamo>  = serde_json::from_reader(file)
+            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+
+        //Modify the specific field.
+        for prestamo in prestamos_deserializados.iter_mut() {
+            if compare_clientes(&prestamo.cliente, &cliente) && prestamo.isbn_libro == isbn.clone() {
+                prestamo.estado = estado.clone();
+                break; //Si encontré el cliente no hay necesidad de seguir buscando.
+            }
+        }
+
+        //Serialize the updated data structure back into JSON format.
+
+        let file = File::create(self.archivo_prestamos.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+        serde_json::to_writer(file, &prestamos_deserializados).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        Ok(())
+    }
+
     fn decrementar_cantidad_copias (&mut self, libro: &Libro) -> Result<(), ErroresPersonalizados> {
         let (isbn, copias) = {
             if let Some(book) = self.libros.get_mut(&libro.isbn) {
@@ -237,19 +262,35 @@ impl Biblioteca {
         None
     }
 
-    fn devolver_libro (&mut self, libro: &Libro, cliente: &Cliente) {
+    fn devolver_libro (&mut self, libro: &Libro, cliente: &Cliente) -> Result<(), ErroresPersonalizados> {
+        let mut updated_book: Option<Libro> = None;
+        let mut updated_loan: Option<Prestamo> = None;
+
         for prestamo in self.prestamos.iter_mut() {
             if compare_clientes(&prestamo.cliente, &cliente) && prestamo.isbn_libro == libro.isbn {
                 prestamo.estado= EstadoPrestamo::Devuelto;
                 if let Some(book) = self.libros.get_mut(&libro.isbn) {
-                    book.copias_disponiles += 1;                    
+                    book.copias_disponiles += 1;     
+                    updated_book = Some(book.clone());  
+                    updated_loan = Some(prestamo.clone());         
+                } else {
+                    return Err(ErroresPersonalizados::LibroNoEncontrado);
                 }
-                break;
+
+                break; //Si encontré el cliente no hay necesidad de seguir buscando.
             }
         }
 
         //Mod arch libro (copias)
-        //Mod arch prest.
+        if updated_book.clone().is_some() {
+            self.modificar_campo_json_libro(updated_book.clone().unwrap().isbn.clone(), updated_book.clone().unwrap().copias_disponiles.clone()); 
+            
+            //Mod arch prest.
+            if updated_loan.clone().is_some() {
+                self.modificar_campo_json_prestmo(&updated_loan.clone().unwrap().estado, &updated_loan.clone().unwrap().cliente, &updated_book.clone().unwrap().isbn);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -827,6 +868,7 @@ mod test {
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 6);
     }
 
+
     #[test]
     fn test_incrementar_copias_nuevo() {
         let mut libro = Libro {
@@ -856,5 +898,73 @@ mod test {
 
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 8);
     }
+
+    #[test]
+    fn test_devolver_libro_nuevo() {
+        let cliente = Cliente {
+            nombre: "Roberto".to_string(),
+            telefono: 555123789,
+            correo: "roberto@mail.com".to_string(),
+        };
+    
+        
+        let mut libro = Libro {
+            isbn: 42,
+            titulo: "pepe".to_string(),
+            copias_disponiles: 5,  // Inicialmente hay 5 copias
+            autor: "Autor".to_string(),
+            numero_paginas: 300,
+            genero: Genero::Novela,
+        };
+    
+        
+        let prestamo = Prestamo {
+            isbn_libro: libro.isbn.clone(),
+            cliente: cliente.clone(),
+            fecha_vencimiento: Fecha { dia: 15, mes: 6, año: 2025 },
+            fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },  // Aún no devuelto
+            estado: EstadoPrestamo::EnPrestamo,
+        };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+    
+        
+        let mut biblioteca = Biblioteca {
+            nombre: "biblioteca".to_string(),
+            direccion: "arg".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![prestamo],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
+        };
+
+        biblioteca.libros.insert(libro.isbn.clone(), libro.clone());
+        biblioteca.cargar_al_archivo_libros();
+        biblioteca.cargar_al_archivo_prestamos();
+
+
+        biblioteca.devolver_libro(&libro, &cliente);//Lo devuelvo.
+        let libro_devuelto = biblioteca.buscar_prestamo(&libro, &cliente);
+        let esta_devuelto = {
+            match libro_devuelto.unwrap().estado {
+                (EstadoPrestamo::Devuelto) => true,
+                _ => false,
+                
+            }
+        };
+
+        //println!("{}", biblioteca.libros.len());
+        let updated_book = biblioteca.libros.get(&libro.isbn.clone());
+        libro = updated_book.unwrap().clone();
+        assert_eq!(libro.copias_disponiles, 6); //Ok.
+
+        assert_eq!(esta_devuelto, true);
+
+        //El archivo de libros se modifica. Ok.
+        //El archivo de préstamos se modifica. Ok.
+
+    }
+
 
 }
