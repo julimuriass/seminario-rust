@@ -59,6 +59,12 @@ struct Cliente {
     correo: String,
 }
 
+#[derive(Debug)]
+enum ErroresPersonalizados {
+    ErrorArchivo,
+    LibroNoEncontrado,
+}
+
 pub fn no_devolvio (estado: &EstadoPrestamo) -> bool {
     match estado {
         (EstadoPrestamo::EnPrestamo) => true,
@@ -70,11 +76,6 @@ pub fn compare_clientes (cliente1: &Cliente, cliente2: &Cliente) -> bool {
     cliente1.nombre == cliente2.nombre &&
     cliente1.correo == cliente2.correo &&
     cliente1.telefono == cliente2.telefono
-}
-
-enum ErroresPersonalizados {
-    ErrorArchivo,
-    LibroNoEncontrado,
 }
 
 impl Biblioteca {
@@ -113,19 +114,22 @@ impl Biblioteca {
 
     pub fn modificar_campo_json_libro(&mut self, isbn: u32, nuevas_copias: u32) -> Result<(), ErroresPersonalizados> {
         //Open the json file.
-        let file = File::open(self.archivo_libros.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?; //??Si no le pongo el e me marca como error, hay algo que podría hacer o está bien así?
+        
+        let file = File::open(self.archivo_libros.clone()).map_err(|_| ErroresPersonalizados::ErrorArchivo)?; 
         
         let mut libros_deserializados: HashMap<u32, Libro>  = serde_json::from_reader(file)
             .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
 
+
         //Modify the specific field.
-        if let Some(libro) = libros_deserializados.get_mut(&isbn) {
+        if let Some(libro) = libros_deserializados.get_mut(&isbn.clone()) {
             libro.copias_disponiles = nuevas_copias;
         } else {
             return Err(ErroresPersonalizados::LibroNoEncontrado);
         }
 
         //Serialize the updated data structure back into JSON format.
+
         let file = File::create(self.archivo_libros.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
         serde_json::to_writer(file, &libros_deserializados).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
 
@@ -138,7 +142,7 @@ impl Biblioteca {
                 book.copias_disponiles -= 1;
                 (book.isbn, book.copias_disponiles)
             } else {
-                return Err(ErroresPersonalizados::LibroNoEncontrado); 
+                return Err(ErroresPersonalizados::LibroNoEncontrado)?; 
             }
         }; // Mutable borrow ends here
         
@@ -348,11 +352,6 @@ mod test {
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
         biblioteca.incrementar_cantidad_copias(&libro);
-
-         // Synchronize libro with the updated libro.
-        /*if let Some(updated_book) = biblioteca.libros.get(&libro.clone().isbn) {
-            libro = updated_book.clone();
-         }*/
 
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 8);
     }
@@ -821,9 +820,41 @@ mod test {
         };
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.cargar_al_archivo_libros();
 
-        //No se modifica el archivo???
-        assert!(biblioteca.decrementar_cantidad_copias(&libro).is_ok());
+
+        biblioteca.decrementar_cantidad_copias(&libro);
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 6);
     }
+
+    #[test]
+    fn test_incrementar_copias_nuevo() {
+        let mut libro = Libro {
+            isbn: 100,
+            titulo: "Test Libro".to_string(),
+            copias_disponiles: 7,
+            autor: "Autor X".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Novela,
+        };
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+    
+        let mut biblioteca = Biblioteca {
+            nombre: "Biblioteca Test".to_string(),
+            direccion: "Arg".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
+        };
+
+        biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.cargar_al_archivo_libros();
+        biblioteca.incrementar_cantidad_copias(&libro);
+
+        assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 8);
+    }
+
 }
