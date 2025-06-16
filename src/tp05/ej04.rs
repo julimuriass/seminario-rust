@@ -63,6 +63,7 @@ struct Cliente {
 enum ErroresPersonalizados {
     ErrorArchivo,
     LibroNoEncontrado,
+    PrestamoNoPosible,
 }
 
 pub fn no_devolvio (estado: &EstadoPrestamo) -> bool {
@@ -200,8 +201,11 @@ impl Biblioteca {
         cant_prestamos
     }
 
-    fn realizar_prestamo (&mut self, libro: &Libro, cliente: &Cliente) -> bool {
+    fn realizar_prestamo (&mut self, libro: &Libro, cliente: &Cliente) -> Result<(), ErroresPersonalizados> {
         //Check if the book exists and has available copies.
+        let mut updated_loan: Option<Prestamo> = None;
+        let mut updated_book: Option<Libro> = None;
+
         let okay_prestamo = if let Some(book) = self.libros.get(&libro.isbn) {
             book.copias_disponiles >= 1
         } else {
@@ -212,12 +216,29 @@ impl Biblioteca {
         if okay_prestamo && self.contar_prestamos_cliente(cliente) < 5 {
             if let Some(book) = self.libros.get_mut(&libro.isbn) {
                 book.copias_disponiles -= 1;
-                return true;
+                updated_book = Some(book.clone());
+                //Crear el préstamo en estado en prestamo.
+                self.prestamos.push(Prestamo {
+                    isbn_libro: 999, // libro cualquiera
+                    cliente: cliente.clone(),
+                    fecha_vencimiento: Fecha { dia: 1, mes: 1, año: 2025 },
+                    fecha_devolucion: Fecha { dia: 0, mes: 0, año: 0 },
+                    estado: EstadoPrestamo::EnPrestamo,
+                });
             }
+        } else  {
+            return Err(ErroresPersonalizados::PrestamoNoPosible);
         }
-        false
 
-        //Mod arch prest
+
+
+        //Mod arch libro (copias)
+        if updated_book.clone().is_some() {
+            self.modificar_campo_json_libro(updated_book.clone().unwrap().isbn.clone(), updated_book.clone().unwrap().copias_disponiles.clone()); 
+            self.cargar_al_archivo_prestamos();
+        }
+
+        Ok(())
     }
 
 
@@ -489,7 +510,7 @@ mod test {
     
         // Cliente sin préstamos previos, debería poder tomar prestado
         let exito = biblioteca.realizar_prestamo(&libro, &cliente);
-        assert!(exito);
+        assert!(exito.is_ok());
     
         // Copias deberían reducirse en 1
         let copias_restantes = biblioteca.obtener_cantidad_copias(&libro);
@@ -508,7 +529,7 @@ mod test {
     
         // Ahora no debería permitir más préstamos
         let no_exito = biblioteca.realizar_prestamo(&libro, &cliente);
-        assert!(!no_exito);
+        assert!(no_exito.is_err());
     
         // Copias no deberían cambiar porque no se hizo el préstamo
         let copias_final = biblioteca.obtener_cantidad_copias(&libro);
@@ -967,4 +988,48 @@ mod test {
     }
 
 
+    #[test]
+    fn test_realizar_prestamo_nuevo() {
+        let cliente = Cliente {
+            nombre: "Juan".to_string(),
+            telefono: 123456,
+            correo: "juan@mail.com".to_string(),
+        };
+    
+        let libro = Libro {
+            isbn: 101,
+            titulo: "Libro Test".to_string(),
+            copias_disponiles: 3,
+            autor: "Autor Test".to_string(),
+            numero_paginas: 150,
+            genero: Genero::Novela,
+        };
+    
+
+        let path_books = "src/tp05/archivo_libros.txt".to_string();
+        let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
+
+        let mut biblioteca = Biblioteca {
+            nombre: "Biblioteca Test".to_string(),
+            direccion: "Calle Test".to_string(),
+            libros: HashMap::new(),
+            prestamos: vec![],
+            archivo_libros: path_books.into(),
+            archivo_prestamos: path_prestamos.into(),
+        };
+    
+        biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.cargar_al_archivo_libros();
+        biblioteca.cargar_al_archivo_prestamos();
+    
+        // Cliente sin préstamos previos, debería poder tomar prestado
+        let exito = biblioteca.realizar_prestamo(&libro, &cliente);
+        assert!(exito.is_ok());
+    
+        // Copias deberían reducirse en 1
+        let copias_restantes = biblioteca.obtener_cantidad_copias(&libro);
+        assert_eq!(copias_restantes, libro.copias_disponiles - 1);
+
+        //El archivo de libros y de préstamos se modifica. Ok.
+    }
 }
