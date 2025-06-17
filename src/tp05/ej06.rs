@@ -113,14 +113,11 @@ impl PlataformaXYZ {
         let path_trans = PathBuf::from(archivo_transacciones);
         let path_users_bal = PathBuf::from(archivo_usuarios_balances);
         PlataformaXYZ { usuarios: HashMap::new(), criptomonedas: HashMap::new(), transacciones:Vec::new(), archivo_transacciones: path_trans, archivo_usuarios_balances: path_users_bal }
+    //Tendría que inicializar los archivos de transacciones y de usuarios_balances acá vacíos??? O así está bien?
+    
     }
 
     fn cargar_transaccion_al_archivo(&mut self, transaccion: &Transaccion) -> Result<(), ErrorIntercambio> {
-        /*let mut file:File = match File::create(self.archivo_transacciones.clone()) {
-            Err(e) => Err(ErrorIntercambio::ErrorArchivo)?,
-            Ok(arch) => arch,
-        };*/
-
         let mut file = OpenOptions::new()
         .create(true)      // Create file if it doesn't exist
         .append(true)      // Append to end of file (don't overwrite)
@@ -149,6 +146,10 @@ impl PlataformaXYZ {
 
         Ok(())
     }
+
+    //fn modificar_campo_json_usuario(&mut self, )
+
+
 
     //Registrar usuario.
     pub fn registrar_usuario(&mut self, usuario: Usuario) { 
@@ -187,6 +188,8 @@ impl PlataformaXYZ {
                 self.transacciones.push(transaccion.clone());
                 //Modificar archivo transaccion (agregar transaccion)
                 self.cargar_transaccion_al_archivo(&transaccion.clone());
+
+                //Modificar al usuario en el archivo de usuarios_balances. 
 
                 Ok(())
             }
@@ -255,6 +258,9 @@ impl PlataformaXYZ {
         //Modificar archivo transaccion (agregar transaccion)
         self.cargar_transaccion_al_archivo(&transaccion.clone());
 
+        //Modificar al usuario en el archivo de usuarios_balances. 
+        
+
         Ok(())
     }
 
@@ -303,6 +309,8 @@ impl PlataformaXYZ {
         self.transacciones.push(transaccion.clone());
         //Modificar archivo transaccion (agregar transaccion)
         self.cargar_transaccion_al_archivo(&transaccion.clone());
+
+        //Modificar al usuario en el archivo de usuarios_balances. 
 
         Ok(())
     }
@@ -357,6 +365,8 @@ impl PlataformaXYZ {
          //Modificar archivo transaccion (agregar transaccion)
          self.cargar_transaccion_al_archivo(&transaccion.clone());
 
+         //Modificar al usuario en el archivo de usuarios_balances. 
+
          Ok(hash)
     }
 
@@ -407,6 +417,8 @@ impl PlataformaXYZ {
         //Modificar archivo transaccion (agregar transaccion)
         self.cargar_transaccion_al_archivo(&transaccion.clone());
 
+        //Modificar al usuario en el archivo de usuarios_balances. 
+
         Ok(())
     }
     
@@ -445,6 +457,8 @@ impl PlataformaXYZ {
         self.transacciones.push(transaccion.clone());
         //Modificar archivo transaccion (agregar transaccion)
         self.cargar_transaccion_al_archivo(&transaccion.clone());
+        
+        //Modificar al usuario en el archivo de usuarios_balances. 
 
         Ok(())
     }
@@ -1010,7 +1024,7 @@ mod test {
 
         plataforma.registrar_usuario(user_nuevo.clone());
         assert!(plataforma.cargar_usuarios_al_archivo().is_ok()); //Se agrega bien al final del archivo. Ok.
-
     }
+
+
 }
- 

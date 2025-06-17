@@ -901,6 +901,15 @@ mod test {
             genero: Genero::Novela,
         };
 
+        let mut libro1 = Libro {
+            isbn: 000,
+            titulo: "Test Libro".to_string(),
+            copias_disponiles: 7,
+            autor: "Autor X".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Novela,
+        };
+
         let path_books = "src/tp05/archivo_libros.txt".to_string();
         let path_prestamos = "src/tp05/archivo_prestamos.txt".to_string();
     
@@ -914,7 +923,9 @@ mod test {
         };
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.libros.insert(libro1.isbn, libro1.clone());
         biblioteca.cargar_al_archivo_libros();
+        
         biblioteca.incrementar_cantidad_copias(&libro);
 
         assert_eq!(biblioteca.obtener_cantidad_copias(&libro), 8);
