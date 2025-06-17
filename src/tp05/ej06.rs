@@ -147,10 +147,6 @@ impl PlataformaXYZ {
         Ok(())
     }
 
-    //fn modificar_campo_json_usuario(&mut self, )
-
-
-
     //Registrar usuario.
     pub fn registrar_usuario(&mut self, usuario: Usuario) { 
         self.usuarios.insert(usuario.email.clone(), usuario);
@@ -190,6 +186,7 @@ impl PlataformaXYZ {
                 self.cargar_transaccion_al_archivo(&transaccion.clone());
 
                 //Modificar al usuario en el archivo de usuarios_balances. 
+                self.cargar_usuarios_al_archivo();
 
                 Ok(())
             }
@@ -259,6 +256,7 @@ impl PlataformaXYZ {
         self.cargar_transaccion_al_archivo(&transaccion.clone());
 
         //Modificar al usuario en el archivo de usuarios_balances. 
+        self.cargar_usuarios_al_archivo();
         
 
         Ok(())
@@ -311,6 +309,7 @@ impl PlataformaXYZ {
         self.cargar_transaccion_al_archivo(&transaccion.clone());
 
         //Modificar al usuario en el archivo de usuarios_balances. 
+        self.cargar_usuarios_al_archivo();
 
         Ok(())
     }
@@ -366,6 +365,7 @@ impl PlataformaXYZ {
          self.cargar_transaccion_al_archivo(&transaccion.clone());
 
          //Modificar al usuario en el archivo de usuarios_balances. 
+         self.cargar_usuarios_al_archivo();
 
          Ok(hash)
     }
@@ -417,7 +417,8 @@ impl PlataformaXYZ {
         //Modificar archivo transaccion (agregar transaccion)
         self.cargar_transaccion_al_archivo(&transaccion.clone());
 
-        //Modificar al usuario en el archivo de usuarios_balances. 
+        //Modificar al usuario en el archivo de usuarios_balances. \
+        self.cargar_usuarios_al_archivo();
 
         Ok(())
     }
@@ -459,6 +460,7 @@ impl PlataformaXYZ {
         self.cargar_transaccion_al_archivo(&transaccion.clone());
         
         //Modificar al usuario en el archivo de usuarios_balances. 
+        self.cargar_usuarios_al_archivo();
 
         Ok(())
     }
