@@ -1,1 +1,1 @@
-{"101":{"isbn":101,"titulo":"Libro Test","copias_disponiles":3,"autor":"Autor Test","numero_paginas":150,"genero":"Novela"}}
+{"100":{"isbn":100,"titulo":"Test Libro","copias_disponiles":6,"autor":"Autor X","numero_paginas":200,"genero":"Novela"}}

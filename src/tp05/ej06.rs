@@ -1,9 +1,16 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 use chrono::{DateTime, Utc};
 use rand::Rng;
 use std::ptr::eq;
 
-#[derive(Clone, Debug)]
+use serde::{Serialize, Deserialize};
+use core::arch;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::path::Path;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Usuario {
     nombre: String,
     apellido: String,
@@ -14,20 +21,20 @@ struct Usuario {
     balance_criptomoneda: HashMap<String, f64>, //Nombre_cripto -> cantidad.
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Blockchain {
     nombre: String,
     prefijo: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Criptomoneda { 
     nombre: String,
     prefijo: String,
     listado_blockchains: Vec<Blockchain>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TipoTransaccion {
     IngresoFiat,
     CompraCripto,
@@ -51,13 +58,13 @@ impl PartialEq for TipoTransaccion {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum Medio {
     MercadoPago,
     TransferenciaBancaria,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Transaccion {
     fecha: DateTime<Utc>,
     tipo: TipoTransaccion,
@@ -71,11 +78,13 @@ struct Transaccion {
     medio: Option<Medio>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct PlataformaXYZ {
     usuarios: HashMap<String, Usuario>, //Email -> usuario.
     criptomonedas: HashMap<String, Criptomoneda>, //Nombre_cripto -> cripto.
     transacciones: Vec<Transaccion>,
+    archivo_transacciones: PathBuf,
+    archivo_usuarios_balances: PathBuf,
 }
 
 //Custom errors.
@@ -86,6 +95,7 @@ enum ErrorIntercambio {
     CriptoNoEncontrada,
     BlockchainNoDisponible,
     UsuarioNoEncontrado,
+    ErrorArchivo, //está bien que esté dentro de errorIntercambio o tendría que estar en otro enum?
 }
 
 //Obtener cotizacion.
@@ -99,8 +109,45 @@ pub fn obtener_cotizacion(cripto_nombre: &str) -> f64  { //Datos en dólares del
 }
 
 impl PlataformaXYZ {
-    fn new() -> Self {
-        PlataformaXYZ { usuarios: HashMap::new(), criptomonedas: HashMap::new(), transacciones:Vec::new() }
+    fn new(archivo_transacciones: String, archivo_usuarios_balances: String) -> Self {
+        let path_trans = PathBuf::from(archivo_transacciones);
+        let path_users_bal = PathBuf::from(archivo_usuarios_balances);
+        PlataformaXYZ { usuarios: HashMap::new(), criptomonedas: HashMap::new(), transacciones:Vec::new(), archivo_transacciones: path_trans, archivo_usuarios_balances: path_users_bal }
+    }
+
+    fn cargar_transaccion_al_archivo(&mut self, transaccion: &Transaccion) -> Result<(), ErrorIntercambio> {
+        /*let mut file:File = match File::create(self.archivo_transacciones.clone()) {
+            Err(e) => Err(ErrorIntercambio::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };*/
+
+        let mut file = OpenOptions::new()
+        .create(true)      // Create file if it doesn't exist
+        .append(true)      // Append to end of file (don't overwrite)
+        .open(&self.archivo_transacciones)
+        .map_err(|_| ErrorIntercambio::ErrorArchivo)?;
+
+        let transaccion_serializada = serde_json::to_string(&transaccion).unwrap();
+
+        match file.write(&transaccion_serializada.as_bytes()) {
+            Err(e) => Err(ErrorIntercambio::ErrorArchivo),
+            Ok(_) => Ok(()),
+        }
+    }
+
+    fn cargar_usuarios_al_archivo(&mut self) -> Result<(), ErrorIntercambio> {
+        //Cargar todos los usuarios al archivo.
+        let mut file:File = match File::create(self.archivo_usuarios_balances.clone()) {
+            Err(e) => Err(ErrorIntercambio::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };
+
+        let writer = std::io::BufWriter::new(&file);
+
+        serde_json::to_writer(writer, &self.usuarios) 
+            .map_err(|e| ErrorIntercambio::ErrorArchivo)?;
+
+        Ok(())
     }
 
     //Registrar usuario.
@@ -137,7 +184,10 @@ impl PlataformaXYZ {
                 };
 
                 //Agrego la transaccion a mi registro de transacciones.
-                self.transacciones.push(transaccion);
+                self.transacciones.push(transaccion.clone());
+                //Modificar archivo transaccion (agregar transaccion)
+                self.cargar_transaccion_al_archivo(&transaccion.clone());
+
                 Ok(())
             }
             false => Err(ErrorIntercambio::UsuarioNoValido),
@@ -201,7 +251,10 @@ impl PlataformaXYZ {
             medio: None,
         };
 
-        self.transacciones.push(transaccion);
+        self.transacciones.push(transaccion.clone());
+        //Modificar archivo transaccion (agregar transaccion)
+        self.cargar_transaccion_al_archivo(&transaccion.clone());
+
         Ok(())
     }
 
@@ -247,7 +300,10 @@ impl PlataformaXYZ {
             medio: None,
         };
 
-        self.transacciones.push(transaccion);
+        self.transacciones.push(transaccion.clone());
+        //Modificar archivo transaccion (agregar transaccion)
+        self.cargar_transaccion_al_archivo(&transaccion.clone());
+
         Ok(())
     }
 
@@ -297,7 +353,10 @@ impl PlataformaXYZ {
             medio: None,
          };
 
-         self.transacciones.push(transaccion);
+         self.transacciones.push(transaccion.clone());
+         //Modificar archivo transaccion (agregar transaccion)
+         self.cargar_transaccion_al_archivo(&transaccion.clone());
+
          Ok(hash)
     }
 
@@ -344,7 +403,10 @@ impl PlataformaXYZ {
             medio: None,
         };
 
-        self.transacciones.push(transaccion);
+        self.transacciones.push(transaccion.clone());
+        //Modificar archivo transaccion (agregar transaccion)
+        self.cargar_transaccion_al_archivo(&transaccion.clone());
+
         Ok(())
     }
     
@@ -380,7 +442,10 @@ impl PlataformaXYZ {
             medio: Some(medio.clone()),
         };
 
-        self.transacciones.push(transaccion);
+        self.transacciones.push(transaccion.clone());
+        //Modificar archivo transaccion (agregar transaccion)
+        self.cargar_transaccion_al_archivo(&transaccion.clone());
+
         Ok(())
     }
 
@@ -497,11 +562,16 @@ impl PlataformaXYZ {
 #[cfg(test)]
 mod test {
     use core::hash;
+    use std::path;
 
     use super::*;
 
     fn crear_plataforma() -> PlataformaXYZ {
-        let mut plataforma = PlataformaXYZ::new();
+        let path_transacciones = "src/tp05/archivo_transacciones.txt";
+        let path_usuarios_balances = "src/tp05/archivo_usuarios_transacciones.txt";
+        let mut plataforma = PlataformaXYZ::new(String::from(path_transacciones), String::from(path_usuarios_balances));
+
+
 
         //Crear usuarios.
         let mut user0 = Usuario {
@@ -865,6 +935,11 @@ mod test {
             prefijo: "ETH".to_string(),
         };
 
+        let litecoin_chain = Blockchain {
+            nombre: "Litecoin".to_string(),
+            prefijo: "LTC".to_string(),
+        };
+
         // Crear criptomonedas
         let bitcoin = Criptomoneda {
             nombre: "Bitcoin".to_string(),
@@ -878,12 +953,20 @@ mod test {
             listado_blockchains: vec![ethereum_chain],
         };
 
+        let litecoin = Criptomoneda {
+            nombre: "Litecoin".to_string(),
+            prefijo: "LIC".to_string(),
+            listado_blockchains: vec![litecoin_chain],
+        };
+
         plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &bitcoin);
 
         plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &bitcoin);
         
 
         plataforma.comprar_determinada_criptomoneda(1000.0, &mut user0, &ethereum);
+
+        plataforma.comprar_determinada_criptomoneda(100.0, &mut user0, &litecoin);
         
         let updated_user = plataforma.usuarios.get(&user0.email).unwrap();
         user0 = updated_user.clone(); // Synchronize user0 with the updated user
@@ -900,6 +983,34 @@ mod test {
 
         assert_eq!(plataforma.criptomoneda_mas_vendida(), Some(("Bitcoin".to_string(), 2))); //Ok.
         assert_eq!(plataforma.crpitomoneda_mas_volumen_venta(), Some(("Bitcoin".to_string(), 0.0002))); //Ok.
+    }
+
+    #[test]
+    fn test_obtener_cotizacion() {
+        assert_eq!(obtener_cotizacion("Litecoin"), 94.42);
+        assert_eq!(obtener_cotizacion("pepe"), 50.0);
+
+    }
+
+    #[test]
+    fn test_cargar_usuarios_al_archivo() {
+        let mut plataforma = crear_plataforma();
+        
+        assert!(plataforma.cargar_usuarios_al_archivo().is_ok()); //Ok. El archivo de modifica bien.
+
+        let mut user_nuevo = Usuario {
+            nombre: "Caca".to_string(),
+            apellido: "C".to_string(),
+            email: "caca@email".to_string(),
+            dni: 666,
+            identidad_validada: true,
+            balance_fiat: 100000.0,
+            balance_criptomoneda: HashMap::new()
+        };
+
+        plataforma.registrar_usuario(user_nuevo.clone());
+        assert!(plataforma.cargar_usuarios_al_archivo().is_ok()); //Se agrega bien al final del archivo. Ok.
+
     }
 }
  
