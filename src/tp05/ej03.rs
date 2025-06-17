@@ -18,7 +18,7 @@ enum TipoAnimal {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-struct Veterinaria {
+struct Veterinaria { //serializar TODO
     nombre: String,
     direccion: String,
     id: i32,
@@ -108,6 +108,7 @@ impl Veterinaria {
             atenciones_realizadas: Vec::new(),
             archivo_atenciones: path,
         }
+        //crear un archivo con estos datos.
     }
 
     pub fn cargar_al_archivo(&mut self, atencion: &Atencion) -> Result<(), ErroresPersonalizados> {
@@ -168,7 +169,7 @@ impl Veterinaria {
             //Está bien modificar el archivo acá???
             //Tendría que eliminar a la mascota de atenciones.
             //Tendría que modificar mi atender mascota original para que lo agregue a atenciones realizadas, no?
-
+            //archivo de atenciones o archivo de atenciones atendidas?
         } 
         None
     }
@@ -296,7 +297,7 @@ impl Veterinaria {
             }
         }
 
-        if indice_atencion != -1 {
+        if indice_atencion != -1 { //Separar.
             self.atenciones.remove(indice_atencion as usize);
             //Modify the JSON file. 
             let file = std::fs::OpenOptions::new()

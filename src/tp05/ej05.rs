@@ -263,7 +263,7 @@ impl StreamingRust {
     }
 
     pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
-        //Tendría que chequear que el usuario no existe antes??
+        
         let usuario = Usuario {
             id: id,
             suscripciones: vec![suscripcion.clone()],
@@ -273,7 +273,7 @@ impl StreamingRust {
             apellido: apellido,
             email: email,
         };
-
+        //chequear que el usuario no exista.
         self.usuarios.push(usuario.clone());
 
         //Append al archivo de suscripciones.

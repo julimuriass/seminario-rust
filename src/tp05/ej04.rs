@@ -172,7 +172,7 @@ impl Biblioteca {
             }
         }; // Mutable borrow ends here
         
-        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto?
+        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto? si
         Ok(())
     }
 
@@ -902,7 +902,7 @@ mod test {
         };
 
         let mut libro1 = Libro {
-            isbn: 000,
+            isbn: 200,
             titulo: "Test Libro".to_string(),
             copias_disponiles: 7,
             autor: "Autor X".to_string(),

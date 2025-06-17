@@ -95,7 +95,7 @@ enum ErrorIntercambio {
     CriptoNoEncontrada,
     BlockchainNoDisponible,
     UsuarioNoEncontrado,
-    ErrorArchivo, //está bien que esté dentro de errorIntercambio o tendría que estar en otro enum?
+    ErrorArchivo, //agregar msj
 }
 
 //Obtener cotizacion.
@@ -113,7 +113,7 @@ impl PlataformaXYZ {
         let path_trans = PathBuf::from(archivo_transacciones);
         let path_users_bal = PathBuf::from(archivo_usuarios_balances);
         PlataformaXYZ { usuarios: HashMap::new(), criptomonedas: HashMap::new(), transacciones:Vec::new(), archivo_transacciones: path_trans, archivo_usuarios_balances: path_users_bal }
-    //Tendría que inicializar los archivos de transacciones y de usuarios_balances acá vacíos??? O así está bien?
+    //Tendría que inicializar los archivos de transacciones y de usuarios_balances acá vacíos??? O así está bien? sí.
     
     }
 

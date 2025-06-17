@@ -90,7 +90,7 @@ impl PlayList {
 
     fn agregar_cancion(&mut self, cancion: &Cancion) {
         self.canciones.push(cancion.clone());
-        self.cargar_al_archivo(cancion); //Qué hago con el unused result?
+        self.cargar_al_archivo(cancion); //Qué hago con el unused result? -> retornar un result.
 
     }
 
@@ -209,7 +209,7 @@ impl PlayList {
             .open(self.archivo_canciones.clone())
             .map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?;
 
-        archivo.write_all(b"[]").map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?; //b"[]" to write an empty JSON array to the file. Ask if okay???
+        archivo.write_all(b"[]").map_err(|e| ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo: {}", e)))?; //b"[]" to write an empty JSON array to the file.
 
         Ok(())
     }
@@ -273,7 +273,7 @@ impl PlayList {
     }
 
     #[test]
-    fn testear_eliminar_canciones() {
+    fn testear_eliminar_canciones() { //No anda. help.
         let path = "src/tp05/archivo_canciones.txt";
 
         let mut playlist= PlayList::new(String::from("Chill music"), String::from(path));
