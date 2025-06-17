@@ -711,4 +711,23 @@ mod test {
         //Ok. El usuario nuevo se agrega bien al final del archivo (append).
     }
 
+    #[test]
+    fn test_costo_mensual() {
+        /*fn costo_mensual(&self) -> f64 {
+        match self {
+            TipoSuscripcion::Basic => 5.0,
+            TipoSuscripcion::Clasic => 9.5,
+            TipoSuscripcion::Super => 15.0,
+        }
+    }
+ */
+        let tipo_b = TipoSuscripcion::Basic;
+        assert_eq!(tipo_b.costo_mensual(), 5.0);
+
+        let tipo_c = TipoSuscripcion::Clasic;
+        assert_eq!(tipo_c.costo_mensual(), 9.5);
+
+        let tipo_s = TipoSuscripcion::Super;
+        assert_eq!(tipo_s.costo_mensual(), 15.0);
+    }
 }
