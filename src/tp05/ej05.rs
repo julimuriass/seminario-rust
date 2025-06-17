@@ -1,6 +1,13 @@
-use std::ptr::eq;
+use std::{path::PathBuf, ptr::eq};
 
-#[derive(Clone, Debug)]
+use serde::{Serialize, Deserialize};
+use core::arch;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+use std::path::Path;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum TipoSuscripcion {
     Basic,
     Clasic,
@@ -67,7 +74,7 @@ impl TipoSuscripcion {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Suscripcion {
     tipo: TipoSuscripcion,
     duracion_meses: u8,
@@ -117,7 +124,7 @@ impl Suscripcion {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum MedioPago {
     Efectivo,
     MercadoPago {
@@ -146,7 +153,7 @@ impl MedioPago {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Usuario {
     suscripciones: Vec<Suscripcion>,
     medio_pago: MedioPago,
@@ -206,21 +213,57 @@ impl Usuario {
     }
 }
 
-#[derive(Clone, Debug)]
+enum ErroresPersonalizados {
+    ErrorArchivo,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct StreamingRust {
     usuarios: Vec<Usuario>, 
+    archivo_usuarios_suscripciones: PathBuf,
     
 }
 
 impl StreamingRust {
 
-    pub fn crear_plataforma() -> StreamingRust {
+    pub fn crear_plataforma(archivo_usuarios_suscripciones: String) -> StreamingRust {
+        let path = PathBuf::from(archivo_usuarios_suscripciones);
         StreamingRust {
             usuarios: Vec::new(),
+            archivo_usuarios_suscripciones: path,
         }
     }
 
+    fn cargar_usuario_al_archivo(&mut self, usuario: &Usuario) -> Result<(), ErroresPersonalizados> {
+        let mut file = OpenOptions::new()
+        .create(true)      // Create file if it doesn't exist
+        .append(true)      // Append to end of file (don't overwrite)
+        .open(&self.archivo_usuarios_suscripciones)
+        .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
+
+        let usuario_serializado = serde_json::to_string(&usuario).unwrap();
+
+        match file.write(&usuario_serializado.as_bytes()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo),
+            Ok(_) => Ok(()),
+        }
+    }
+
+    fn modificar_archivo(&mut self) -> Result<(), ErroresPersonalizados> {
+        let mut file:File = match File::create(self.archivo_usuarios_suscripciones.clone()) {
+            Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
+            Ok(arch) => arch,
+        };
+
+        let writer = std::io::BufWriter::new(&file);
+
+        serde_json::to_writer(writer, &self.usuarios) 
+            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+
+        Ok(())
+    }
+
     pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
+        //Tendría que chequear que el usuario no existe antes??
         let usuario = Usuario {
             id: id,
             suscripciones: vec![suscripcion.clone()],
@@ -231,20 +274,31 @@ impl StreamingRust {
             email: email,
         };
 
-        self.usuarios.push(usuario);
+        self.usuarios.push(usuario.clone());
+
+        //Append al archivo de suscripciones.
+        self.cargar_usuario_al_archivo(&usuario.clone());
     }
 
     pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
         //Given an user upgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.upgrade_suscripcion(); //Update subscription.
+
+            //Modificar archivo suscripciones.
+            self.modificar_archivo();
         }
+
     }
 
     pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), String> {
         //Given an user downgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.downgrade_suscripcion()?; //Downgrade subscription.
+
+            //Modificar archivo suscripciones.
+            self.modificar_archivo();
+
             return Ok(());
         }
         Err("No se encontró el usuario".to_string())
@@ -253,6 +307,9 @@ impl StreamingRust {
     pub fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.cancelar_suscripcion(); //Downgrade subscription.
+
+            //Modificar archivo suscripciones.
+            self.modificar_archivo();
         }
     }
 
@@ -406,8 +463,9 @@ mod test {
             }],
         };
 
+        let path = "src/tp05/archivo_usuarios_suscripciones.txt";
         let mut usuarios = vec![user0.clone()];
-        let mut plataforma = StreamingRust {usuarios};
+        let mut plataforma = StreamingRust {usuarios, archivo_usuarios_suscripciones: path.into()};
 
         plataforma.upgrade_suscripcion(&mut user0);
 
@@ -516,7 +574,9 @@ mod test {
         //Suscripciones: Activos: 2 Basic, 1 Clasic. Inactivos: 1 Clasic.
 
         let mut usuarios = vec![user0.clone(), user1.clone(), user2.clone(), user3.clone()];
-        let mut plataforma = StreamingRust {usuarios};
+        let path = "src/tp05/archivo_usuarios_suscripciones.txt";
+
+        let mut plataforma = StreamingRust {usuarios, archivo_usuarios_suscripciones: path.into()};
 
         assert_eq!(plataforma.medio_pago_mas_usado_activos(), Some(("Efectivo".to_string(), 2))); //Ok.
         assert_eq!(plataforma.medio_pago_mas_usado(), Some(("Efectivo".to_string(), 3))); //Ok.
@@ -546,7 +606,8 @@ mod test {
 
     #[test]
     fn crear_plataforma() {
-        let mut plataforma:StreamingRust = StreamingRust::crear_plataforma();
+        let path = "src/tp05/archivo_usuarios_suscripciones.txt";
+        let mut plataforma:StreamingRust = StreamingRust::crear_plataforma(String::from(path));
         assert!(plataforma.usuarios.is_empty()); //Ok. Se crea con el vector de usuarios vacío.
 
         let mut suscripcion: Suscripcion = Suscripcion::new(TipoSuscripcion::Clasic, 3, "12/9/2020".to_string());
@@ -575,7 +636,9 @@ mod test {
         };
 
         let mut usuarios = vec![user0.clone()];
-        let mut plataforma = StreamingRust {usuarios};
+        let path = "src/tp05/archivo_usuarios_suscripciones.txt";
+
+        let mut plataforma = StreamingRust {usuarios, archivo_usuarios_suscripciones: path.into()};
 
         assert!(plataforma.downgrade_suscripcion(&mut user0).is_err()); //Ok.
 
@@ -634,6 +697,18 @@ mod test {
         //Activar la primera suscripción.
         user0.suscripciones[0].activar_suscripcion();
         assert_eq!(user0.suscripciones[0].activa, true); //Ok.
+    }
+
+    #[test]
+    fn test_crear_usuario_archivo() {
+        let path = "src/tp05/archivo_usuarios_suscripciones.txt";
+        let mut plataforma:StreamingRust = StreamingRust::crear_plataforma(String::from(path));
+
+        plataforma.crear_usuario(&Suscripcion { tipo: TipoSuscripcion::Basic, duracion_meses: 8, fecha_inicio: "12/12/2000".to_string(), activa: true }, &MedioPago::Efectivo, 1, "user1".to_string(), "nombre1".to_string(), "ape1".to_string(), "email1".to_string());
+        //Ok. El archivo de usuarios_suscripciones se crea correctamente.
+
+        plataforma.crear_usuario(&Suscripcion { tipo: TipoSuscripcion::Basic, duracion_meses: 8, fecha_inicio: "12/12/2000".to_string(), activa: true }, &MedioPago::Efectivo, 2, "user2".to_string(), "nombre2".to_string(), "ape2".to_string(), "email2".to_string());
+        //Ok. El usuario nuevo se agrega bien al final del archivo (append).
     }
 
 }

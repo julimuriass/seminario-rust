@@ -1,1 +1,1 @@
-{"100":{"isbn":100,"titulo":"Test Libro","copias_disponiles":8,"autor":"Autor X","numero_paginas":200,"genero":"Novela"},"0":{"isbn":0,"titulo":"Test Libro","copias_disponiles":7,"autor":"Autor X","numero_paginas":200,"genero":"Novela"}}
+{"100":{"isbn":100,"titulo":"Test Libro","copias_disponiles":6,"autor":"Autor X","numero_paginas":200,"genero":"Novela"},"0":{"isbn":0,"titulo":"Test Libro","copias_disponiles":7,"autor":"Autor X","numero_paginas":200,"genero":"Novela"}}
