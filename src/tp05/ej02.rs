@@ -74,24 +74,25 @@ impl PlayList {
         }
     }
 
-    pub fn cargar_al_archivo(&mut self, cancion: &Cancion) -> Result<(), ErroresPersonalizados> {
+    pub fn cargar_al_archivo(&mut self) -> Result<(), ErroresPersonalizados> {
         //Abrir el archivo en modo escritura.
         let mut archivo = match File::create(self.archivo_canciones.clone()) {
             Err(e) => Err(ErroresPersonalizados::ErrorArchivo(format!("Problema al abrir el archivo")))?,
             Ok(arch) => arch,            
         };
 
-        let cancion_serializada = serde_json::to_string(&cancion).unwrap();
-        match archivo.write(&cancion_serializada.as_bytes()) {
+        let canciones_serializada = serde_json::to_string(&self.canciones).unwrap();
+        match archivo.write(&canciones_serializada.as_bytes()) {
             Err(e) => Err(ErroresPersonalizados::ErrorArchivo(format!("Problema al escribir en el archivo")))?,
             Ok(_) => Ok(()),  
         }
     }
 
-    fn agregar_cancion(&mut self, cancion: &Cancion) {
+    fn agregar_cancion(&mut self, cancion: &Cancion) -> Result<(), ErroresPersonalizados> {
         self.canciones.push(cancion.clone());
-        self.cargar_al_archivo(cancion); //Qué hago con el unused result? -> retornar un result.
+        self.cargar_al_archivo()?; 
 
+        Ok(())
     }
 
     fn eliminar_cancion(&mut self, cancion: &Cancion) -> Result<(), ErroresPersonalizados> {
@@ -229,9 +230,9 @@ impl PlayList {
         let cancion2= Cancion::new(String::from("Cancion2"), String::from("juancito"), Genero::JAZZ);
         let cancion3= Cancion::new(String::from("Cancion3"), String::from("pepa"), Genero::OTROS);
 
-        playlist.agregar_cancion(&cancion1);
-        playlist.agregar_cancion(&cancion2);
-        playlist.agregar_cancion(&cancion3);
+        assert!(playlist.agregar_cancion(&cancion1).is_ok());
+        assert!(playlist.agregar_cancion(&cancion2).is_ok());
+        assert!(playlist.agregar_cancion(&cancion3).is_ok());
 
         assert_eq!(playlist.canciones.len(), 3);
     }

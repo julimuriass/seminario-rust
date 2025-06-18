@@ -74,6 +74,12 @@ impl ConsecionarioAuto {
             archivo_autos: path,
         };
 
+        //Crear archivo vacío.
+        /*let mut file:File = match File::create(path.clone()) {
+            Err(e) => e = Err(ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo en modo escritura."))),
+            Ok(arch) => arch, 
+        };*/
+
         concesionario
     }
 
