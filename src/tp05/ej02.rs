@@ -67,11 +67,21 @@ pub fn compare (cancion1: &Cancion, cancion2: &Cancion) -> bool {
 impl PlayList {
     fn new(nombre: String, archivo_canciones: String) -> PlayList {
         let path = PathBuf::from(archivo_canciones);
-        PlayList {
+
+        let playlist =  PlayList {
             nombre,
             canciones: Vec::new(),
             archivo_canciones: path,
-        }
+        };
+
+        playlist.inicializar_archivo();
+        playlist
+    }
+
+    fn inicializar_archivo(&self) -> Result<(), ErroresPersonalizados> {
+        File::create(&self.archivo_canciones)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo("Error al crear el archivo".to_string()))?;
+        Ok(())
     }
 
     pub fn cargar_al_archivo(&mut self) -> Result<(), ErroresPersonalizados> {
@@ -381,5 +391,12 @@ impl PlayList {
         //Try with an artist that is not in the playlist.
         let mut titi_songs= playlist.obtener_canciones_por_artista(String::from("titi"));
         assert_eq!(titi_songs.len(), 0);
+    }
+
+    #[test]
+    fn test_crear_playlist() {
+        let path = "src/tp05/archivo_canciones.txt";
+        let playlist = PlayList::new("nombre".to_string(), String::from(path));
+        //Ok. Crea el archivo json de la playlist vacío (representando el estado inicial).
     }
  }
