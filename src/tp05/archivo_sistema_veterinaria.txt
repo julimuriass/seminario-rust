@@ -1,0 +1,1 @@
+{"nombre":"Vet 6","direccion":"BuscaVet","id":6,"atenciones":[{"mascota":{"nombre":"Rocky","edad":"5","tipo":"PERRO","dueño":{"nombre":"Juan Perez","direccion":"Calle Falsa 123","telefono":12345678}},"diagnostico_final":"","tratamiento":"","fecha":{"dia":1,"mes":1,"año":2024}}],"atenciones_realizadas":[],"archivo_sistema":"src/tp05/archivo_sistema_veterinaria.txt"}

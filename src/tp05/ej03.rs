@@ -18,13 +18,13 @@ enum TipoAnimal {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-struct Veterinaria { //serializar TODO
+struct Veterinaria { 
     nombre: String,
     direccion: String,
     id: i32,
     atenciones: VecDeque<Atencion>,
     atenciones_realizadas: Vec<Atencion>,
-    archivo_atenciones: PathBuf,
+    archivo_sistema: PathBuf,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -95,30 +95,41 @@ enum ErroresPersonalizados {
     ErrorArchivo,
     MascotaNoEncontrada,
     AtencionNoEncontrada,
+    AtencionImposible,
 }
 
 impl Veterinaria {
-    fn new(nombre: String, direccion: String, id: i32, archivo_atenciones: String) -> Veterinaria {
-        let path = PathBuf::from(archivo_atenciones);
-        Veterinaria {
+    fn new(nombre: String, direccion: String, id: i32, archivo_sistema: String) -> Veterinaria {
+        let path = PathBuf::from(archivo_sistema);
+        let veterinaria = Veterinaria {
             nombre,
             direccion,
             id,
             atenciones: VecDeque::new(),
             atenciones_realizadas: Vec::new(),
-            archivo_atenciones: path,
-        }
+            archivo_sistema: path,
+        };
         //crear un archivo con estos datos.
+        veterinaria.inicializar_archivo();
+        veterinaria
     }
 
-    pub fn cargar_al_archivo(&mut self, atencion: &Atencion) -> Result<(), ErroresPersonalizados> {
-        let mut archivo: File = match File::create(self.archivo_atenciones.clone()) {
+    fn inicializar_archivo(&self) -> Result<(), ErroresPersonalizados> {
+        let file = File::create(&self.archivo_sistema)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
+
+        serde_json::to_writer_pretty(file, &self); //Serialize the data structure (La veterinaria).
+        Ok(())
+    }
+
+    pub fn cargar_al_archivo(&mut self) -> Result<(), ErroresPersonalizados> {
+        let mut archivo: File = match File::create(self.archivo_sistema.clone()) {
             Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
             Ok(arch) => arch,
         };
 
-        let atencion_serializada = serde_json::to_string(&atencion).unwrap();
-        match archivo.write(&atencion_serializada.as_bytes()) {
+        let sistema_serializado = serde_json::to_string(&self).unwrap();
+        match archivo.write(&sistema_serializado.as_bytes()) {
             Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
             Ok(_) => Ok(()),
         }
@@ -133,21 +144,7 @@ impl Veterinaria {
         };
 
         self.atenciones.push_back(nueva_atencion.clone());
-        self.cargar_al_archivo(&nueva_atencion.clone());
-    }
-
-    pub fn cargar_al_inicio_del_archivo(&mut self) -> Result<(), ErroresPersonalizados> {
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&self.archivo_atenciones)
-            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-    
-        let writer = std::io::BufWriter::new(&file);
-        serde_json::to_writer(writer, &self.atenciones)
-            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-        
-        Ok(())
+        self.cargar_al_archivo();
     }
 
     fn agregar_mascota_maxima_prioridad(&mut self, mascota: Mascota, fecha: Option<Fecha>) {
@@ -159,17 +156,13 @@ impl Veterinaria {
         };
 
         self.atenciones.push_front(nueva_atencion.clone());
-        //Tendría que hacer que la atención nueva también esté en el archivo al inicio (para que persista con el orden en el que se encuentran los datos en la estructura).
-        self.cargar_al_inicio_del_archivo();
+        self.cargar_al_archivo();
     }
 
     fn atender_mascota(&mut self) -> Option<Mascota>{
         if let Some(mascota_atendida)= self.atenciones.pop_front() {
+            self.cargar_al_archivo();
             return Some(mascota_atendida.mascota);
-            //Está bien modificar el archivo acá???
-            //Tendría que eliminar a la mascota de atenciones.
-            //Tendría que modificar mi atender mascota original para que lo agregue a atenciones realizadas, no?
-            //archivo de atenciones o archivo de atenciones atendidas?
         } 
         None
     }
@@ -188,25 +181,15 @@ impl Veterinaria {
             self.atenciones.remove(indice_mascota_retirada as usize);
 
             //Modify the JSON file. 
-            let file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&self.archivo_atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-            let writer = std::io::BufWriter::new(&file);
-            serde_json::to_writer(writer, &self.atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+            self.cargar_al_archivo()?;
 
             Ok(())
         } else {
             return Err(ErroresPersonalizados::MascotaNoEncontrada);
-        }
-
-        
+        }   
     }
 
-    fn registrar_atencion(&mut self, tratamiento: String, diagnostico: String, fecha: Option<Fecha>) {
+    fn registrar_atencion(&mut self, tratamiento: String, diagnostico: String, fecha: Option<Fecha>) -> Result<(), ErroresPersonalizados> {
         if let Some(mascota_atendida)= self.atenciones.pop_front() {
             let atencion_hecha= Atencion {
                 mascota: mascota_atendida.mascota,
@@ -216,7 +199,11 @@ impl Veterinaria {
             };
 
             self.atenciones_realizadas.push(atencion_hecha);
+            self.cargar_al_archivo()?;
+            return Ok(())
         };
+
+        Err(ErroresPersonalizados::AtencionImposible)
     }
 
     fn buscar_atencion(&self, nombre_mascota: String, nombre_dueño: String, telefono: u32) -> Option<Atencion> {
@@ -241,15 +228,7 @@ impl Veterinaria {
         if indice_atencion!= -1 { //If I found the attention.
             self.atenciones[indice_atencion as usize].diagnostico_final = diagnostico_nuevo;
             //Modify the JSON file. 
-            let file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&self.archivo_atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-            let writer = std::io::BufWriter::new(&file);
-            serde_json::to_writer(writer, &self.atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+            self.cargar_al_archivo()?;
 
             Ok(())
         } else {
@@ -271,15 +250,7 @@ impl Veterinaria {
             self.atenciones[indice_atencion as usize].fecha = fecha_nueva;
 
             //Modify the JSON file. 
-            let file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&self.archivo_atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-            let writer = std::io::BufWriter::new(&file);
-            serde_json::to_writer(writer, &self.atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+            self.cargar_al_archivo()?;
 
             Ok(())
         } else {
@@ -300,15 +271,7 @@ impl Veterinaria {
         if indice_atencion != -1 { //Separar.
             self.atenciones.remove(indice_atencion as usize);
             //Modify the JSON file. 
-            let file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&self.archivo_atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-            let writer = std::io::BufWriter::new(&file);
-            serde_json::to_writer(writer, &self.atenciones)
-                .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
+            self.cargar_al_archivo();
 
             Ok(())
         } else {
@@ -347,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_agregar_nueva_mascota() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 1"), String::from("Arg"), 1, String::from(path));
         let mascota = crear_mascota("Firulais", TipoAnimal::PERRO);
 
@@ -357,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_agregar_mascota_maxima_prioridad() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 2"), String::from("Arg "), 2, String::from(path));
         let m1 = crear_mascota("Gato", TipoAnimal::GATO);
         let m2 = crear_mascota("Caballo", TipoAnimal::CABALLO);
@@ -370,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_atender_mascota() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 3"), String::from("Arg"), 3, String::from(path));
         let mascota = crear_mascota("Toby", TipoAnimal::GATO);
 
@@ -384,7 +347,7 @@ mod tests {
 
     #[test]
     fn test_registrar_atencion() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 4"), String::from("Arg"), 4 , String::from(path));
         let mascota = crear_mascota("Rex", TipoAnimal::PERRO);
         let fecha = crear_fecha();
@@ -403,7 +366,7 @@ mod tests {
 
     #[test]
     fn test_eliminar_mascota() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 5"), String::from("Zoológico"), 5, String::from(path));
         let mascota = crear_mascota("Milo", TipoAnimal::GATO);
 
@@ -416,7 +379,7 @@ mod tests {
 
     #[test]
     fn test_buscar_atencion() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
         let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
 
@@ -429,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_modificar_diagnostico() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
         let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
 
@@ -448,7 +411,7 @@ mod tests {
 
     #[test]
     fn test_modificar_fecha() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
         let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
         let mut fecha = crear_fecha();
@@ -474,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_eliminar_atencion() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
         let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
         let mut fecha = crear_fecha();
@@ -490,7 +453,7 @@ mod tests {
 
     #[test]
     fn test_agregar_mascota_maxima_prioridad_archivo() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 2"), String::from("Arg "), 2, String::from(path));
         let m1 = crear_mascota("Gato", TipoAnimal::GATO);
         let m2 = crear_mascota("Caballo", TipoAnimal::CABALLO);
@@ -504,7 +467,7 @@ mod tests {
 
     #[test]
     fn test_eliminar_mascota_nuevo() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 5"), String::from("Zoológico"), 5, String::from(path));
         let mascota = crear_mascota("Milo", TipoAnimal::GATO);
 
@@ -521,7 +484,7 @@ mod tests {
 
     #[test]
     fn eliminar_atencion_nuevo() {
-        let path = "src/tp05/archivo_atenciones.txt";
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
         let mut vet = Veterinaria::new(String::from("Vet 6"), String::from("BuscaVet"), 6, String::from(path));
         let mascota = crear_mascota("Rocky", TipoAnimal::PERRO);
         let mut fecha = crear_fecha();
@@ -534,11 +497,13 @@ mod tests {
 
         assert!(vet.eliminar_atencion(&atencion.unwrap()).is_ok());
         assert_eq!(vet.atenciones.len(), 0); //Ok.
+    }
 
-        
-        /*let mut atencion2= Atencion { mascota2.clone(), String::from("fiebre"), String::from("antibioticos"), None}; //Por qué no me deja???
-        assert!(vet.eliminar_atencion(&atencion2).is_err());*/
-
+    #[test]
+    fn test_crear_sistema() {
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
+        let veterinaria = Veterinaria::new("nombre".to_string(), "direccion".to_string(), 111, String::from(path));
+        //Ok. Crea al archivo del sistema con los datos de la veterinaria y sus atenciones vacías.
     }
 }
 
