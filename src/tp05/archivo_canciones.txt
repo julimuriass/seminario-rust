@@ -1,1 +1,1 @@
-[{"titulo":"Cancion2","artista":"juancito","genero":"JAZZ"}]tulo":"Cancion2","artista":"juancito","genero":"JAZZ"}]
+[{"titulo":"Cancion2","artista":"juancito","genero":"JAZZ"}]tulo":"Cancion3","artista":"pepa","genero":"OTROS"},{"titulo":"Cancion2","artista":"juancito","genero":"JAZZ"}]

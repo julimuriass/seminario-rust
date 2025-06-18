@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use core::arch;
+use std::clone;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -71,16 +72,18 @@ impl ConsecionarioAuto {
             direccion: direccion,
             x: x,
             autos: Vec::new(),
-            archivo_autos: path,
+            archivo_autos: path.clone(),
         };
 
         //Crear archivo vacío.
-        /*let mut file:File = match File::create(path.clone()) {
-            Err(e) => e = Err(ErroresPersonalizados::ErrorArchivo(format!("Error al abrir el archivo en modo escritura."))),
-            Ok(arch) => arch, 
-        };*/
-
+        concesionario.inicializar_archivo();
         concesionario
+    }
+
+    fn inicializar_archivo(&self) -> Result<(), ErroresPersonalizados> {
+        File::create(&self.archivo_autos)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo("Error al crear el archivo".to_string()))?;
+        Ok(())
     }
 
     pub fn cargar_al_archivo(&mut self, auto: &Auto) -> Result<(), ErroresPersonalizados> {
@@ -287,4 +290,19 @@ mod  test {
         assert_eq!(auto4.calcular_precio(), 850.0);
     }
 
+    #[test]
+    fn test_crear_concesionaria() {
+        let path = "src/tp05/archivo_autos.txt";
+        let concesionaria = ConsecionarioAuto::new("nombre".to_string(), "direccion".to_string(), 3, String::from(path));
+        //Ok. Crea el archivo Json vacío.
+    }
+
+    /*#[test]
+    fn test_generar_error_archivo() {
+        let path = "src/tp05/archivo_autos.txt"; //Original path.
+        let concesionaria = ConsecionarioAuto::new("nombre".to_string(), "direccion".to_string(), 3, String::from(path));
+
+        let new_path = "src/tp05/archivo_autos_nuevo.txt";
+
+    }*/
 }
