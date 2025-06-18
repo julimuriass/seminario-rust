@@ -505,6 +505,43 @@ mod tests {
         let veterinaria = Veterinaria::new("nombre".to_string(), "direccion".to_string(), 111, String::from(path));
         //Ok. Crea al archivo del sistema con los datos de la veterinaria y sus atenciones vacías.
     }
+
+    #[test]
+    fn test_comparar_fechas() {
+        //Me falta que el coverage pase por el false de la funcion comparar_fechas.
+        let fecha1 = crear_fecha();
+        let fecha2 = Some(Fecha::new(2, 3, 2000));
+
+        assert_eq!(compare_fecha(&fecha1, &fecha2), false);
+    }
+
+    #[test]
+    fn test_atender_mascota_nuevo() {
+        //Para que el coverage pase por la línea 167.
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
+        let mut vet = Veterinaria::new(String::from("Vet 3"), String::from("Arg"), 3, String::from(path));
+
+        assert!(vet.atender_mascota().is_none());
+    }
+
+    #[test]
+    fn test_buscar_mascota_nuevo() {
+        //Para que el coverage pase por la línea 215.
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
+        let mut vet = Veterinaria::new(String::from("Vet 3"), String::from("Arg"), 3, String::from(path));
+
+        assert!(vet.buscar_atencion("Pepe".to_string(), "nombre_dueño".to_string(), 123).is_none());
+    }
+
+    #[test]
+    fn test_registrar_atencion_nuevo() {
+        //Para que el coverage pase por la línea 206.
+        let path = "src/tp05/archivo_sistema_veterinaria.txt";
+        let mut vet = Veterinaria::new(String::from("Vet 3"), String::from("Arg"), 3, String::from(path));
+
+        assert!(vet.registrar_atencion("tratamiento".to_string(), "diagnostico".to_string(), None).is_err());
+    }
+
 }
 
 
