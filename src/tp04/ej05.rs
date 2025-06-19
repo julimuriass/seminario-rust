@@ -104,8 +104,12 @@ impl PlataformaXYZ {
     }
 
     //Registrar usuario.
-    pub fn registrar_usuario(&mut self, usuario: Usuario) { 
+    pub fn registrar_usuario(&mut self, usuario: Usuario) -> Result<(), ErrorIntercambio> {
+        if self.usuarios.iter().any(|u| u.dni == usuario.dni) {
+            return Err(ErrorIntercambio::UsuarioNoValido);
+        } 
         self.usuarios.insert(usuario.email.clone(), usuario);
+        Ok(())
     }
 
     pub fn registrar_criptomoneda(&mut self, criptomoneda: Criptomoneda) {

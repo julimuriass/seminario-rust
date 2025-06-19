@@ -110,7 +110,7 @@ impl Suscripcion {
         }
     }
 
-    fn downgrade(&mut self) -> Result<(), String> {
+    fn downgrade(&mut self) -> Result<(), ErroresPersonalizados> {
         match self.tipo.downgrade() {
             Some(tipo_nuevo) => {
                 self.tipo = tipo_nuevo;
@@ -118,7 +118,7 @@ impl Suscripcion {
             }
             None => {
                 self.desactivar_suscripcion();
-                Err("Se ha canclado su suscripción.".to_string())
+                Err(ErroresPersonalizados::SuscripcionCancelada)
             }
         }
     }
@@ -202,13 +202,13 @@ impl Usuario {
         }
     }
 
-    fn downgrade_suscripcion(&mut self) -> Result<(), String> {
+    fn downgrade_suscripcion(&mut self) -> Result<(), ErroresPersonalizados> {
         match self.obtener_suscripcion_activa_mutable() {
             Some(suscripcion) => {
                 suscripcion.downgrade()?;
                 Ok(())
             }
-            None => Err("No hay una suscripción activa para degradar.".to_string())
+            None => Err(ErroresPersonalizados::ErrorCpnfiguracionSuscripcion),
         }
     }
 }
@@ -216,6 +216,9 @@ impl Usuario {
 enum ErroresPersonalizados {
     ErrorArchivo,
     UsuarioExistente,
+    UsuarioInexistente,
+    SuscripcionCancelada,
+    ErrorCpnfiguracionSuscripcion,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct StreamingRust {
@@ -241,7 +244,7 @@ impl StreamingRust {
         let file = File::create(&self.archivo_usuarios_suscripciones)
             .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
 
-        serde_json::to_writer_pretty(file, &self.archivo_usuarios_suscripciones); //Serialize the data structure (La veterinaria).
+        serde_json::to_writer_pretty(file, &self.usuarios); //Serialize the data structure.
         Ok(())
     }
 
@@ -274,7 +277,7 @@ impl StreamingRust {
         Ok(())
     }
 
-    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> Result<(), ErroresPersonalizados> {
+    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> Result<Usuario, ErroresPersonalizados> {
         
         let usuario = Usuario {
             id: id,
@@ -286,50 +289,54 @@ impl StreamingRust {
             email: email,
         };
         //chequear que el usuario no exista.
-        if let user_existe = self.usuarios.iter().find(|u| u.id == id) {
+        if self.usuarios.iter().any(|u| u.id == id) {
             return Err(ErroresPersonalizados::UsuarioExistente);
         }
-        
-        
+
         self.usuarios.push(usuario.clone());
 
         //Append al archivo de suscripciones.
         self.cargar_usuario_al_archivo(&usuario.clone())?;
 
-        Ok(())
+        Ok(usuario)
     }
 
-    pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), ErroresPersonalizados> {
         //Given an user upgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.upgrade_suscripcion(); //Update subscription.
 
             //Modificar archivo suscripciones.
-            self.modificar_archivo();
+            self.modificar_archivo()?;
+            return Ok(());
         }
-
+        
+        Err(ErroresPersonalizados::UsuarioInexistente)
     }
 
-    pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), String> {
+    pub fn downgrade_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), ErroresPersonalizados> {
         //Given an user downgrade their subscription.
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.downgrade_suscripcion()?; //Downgrade subscription.
 
             //Modificar archivo suscripciones.
-            self.modificar_archivo();
+            self.modificar_archivo()?;
 
             return Ok(());
         }
-        Err("No se encontró el usuario".to_string())
+        Err(ErroresPersonalizados::UsuarioInexistente)
     }
 
-    pub fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) {
+    pub fn cancelar_suscripcion(&mut self, usuario: &mut Usuario) -> Result<(), ErroresPersonalizados> {
         if let Some(user) = self.usuarios.iter_mut().find(|u| u.id == usuario.id) {
             user.cancelar_suscripcion(); //Downgrade subscription.
 
             //Modificar archivo suscripciones.
-            self.modificar_archivo();
+            self.modificar_archivo()?;
+            return Ok(());
         }
+
+        Err(ErroresPersonalizados::UsuarioInexistente)
     }
 
     //Estadísticas.
@@ -631,10 +638,11 @@ mod test {
 
         let mut suscripcion: Suscripcion = Suscripcion::new(TipoSuscripcion::Clasic, 3, "12/9/2020".to_string());
 
-        let mut user = plataforma.crear_usuario(&suscripcion, &MedioPago::Cripto { tipo_cripto: "Bitcoin".to_string() }, 123, "username".to_string(), "nombre".to_string(), "apellido".to_string(), "email".to_string());
-        
-        assert_ne!(plataforma.usuarios.is_empty(), true); //Ok.
+        //let mut user = plataforma.crear_usuario(&suscripcion, &MedioPago::Cripto { tipo_cripto: "Bitcoin".to_string() }, 123, "username".to_string(), "nombre".to_string(), "apellido".to_string(), "email".to_string());
+        assert!(plataforma.crear_usuario(&suscripcion, &MedioPago::Cripto { tipo_cripto: "Bitcoin".to_string() }, 123, "username".to_string(), "nombre".to_string(), "apellido".to_string(), "email".to_string()).is_ok());
         assert_eq!(plataforma.usuarios.len(), 1); //Ok.
+
+        assert!(plataforma.crear_usuario(&suscripcion, &MedioPago::Cripto { tipo_cripto: "Bitcoin".to_string() }, 123, "username".to_string(), "nombre".to_string(), "apellido".to_string(), "email".to_string()).is_err());
     } 
 
     #[test]

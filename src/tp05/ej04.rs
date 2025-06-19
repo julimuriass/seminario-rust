@@ -104,7 +104,7 @@ impl Biblioteca {
         let file = File::create(&self.archivo_libros)
             .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
 
-        serde_json::to_writer_pretty(file, &self.archivo_libros); //Serialize the data structure (La veterinaria).
+        serde_json::to_writer_pretty(file, &self.libros); //Serialize the data structure.
         Ok(())
     }
 
@@ -112,7 +112,7 @@ impl Biblioteca {
         let file = File::create(&self.archivo_prestamos)
             .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
 
-        serde_json::to_writer_pretty(file, &self.archivo_prestamos); //Serialize the data structure (La veterinaria).
+        serde_json::to_writer_pretty(file, &self.prestamos); //Serialize the data structure.
         Ok(())
     }
 
