@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path;
 use crate::tp03::ej03::Fecha;
 
 use serde::{Serialize, Deserialize};
@@ -81,6 +82,42 @@ pub fn compare_clientes (cliente1: &Cliente, cliente2: &Cliente) -> bool {
 
 impl Biblioteca {
 
+    pub fn new(nombre: String, direccion: String, archivo_libros: String, archivo_prestamos: String) -> Biblioteca {
+        let path_books = PathBuf::from(archivo_libros);
+        let path_loans = PathBuf::from(archivo_prestamos);
+        let biblioteca = Biblioteca {
+            nombre,
+            direccion,
+            libros: HashMap::new(),
+            prestamos: vec![],
+            archivo_libros: path_books,
+            archivo_prestamos: path_loans,
+        };
+
+        biblioteca.inicializar_archivo_libros();
+        biblioteca.inicializar_archivo_prestamos();
+
+        biblioteca
+    }
+
+    fn inicializar_archivo_libros(&self) -> Result<(), ErroresPersonalizados> {
+        let file = File::create(&self.archivo_libros)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
+
+        serde_json::to_writer_pretty(file, &self.archivo_libros); //Serialize the data structure (La veterinaria).
+        Ok(())
+    }
+
+    fn inicializar_archivo_prestamos(&self) -> Result<(), ErroresPersonalizados> {
+        let file = File::create(&self.archivo_prestamos)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
+
+        serde_json::to_writer_pretty(file, &self.archivo_prestamos); //Serialize the data structure (La veterinaria).
+        Ok(())
+    }
+
+
+
     pub fn cargar_al_archivo_libros(&mut self) -> Result<(), ErroresPersonalizados> {
         let mut archivo_libros:File = match File::create(self.archivo_libros.clone()) {
             Err(e) => Err(ErroresPersonalizados::ErrorArchivo)?,
@@ -113,54 +150,6 @@ impl Biblioteca {
         } 
     }
 
-    pub fn modificar_campo_json_libro(&mut self, isbn: u32, nuevas_copias: u32) -> Result<(), ErroresPersonalizados> {
-        //Open the json file.
-        
-        let file = File::open(self.archivo_libros.clone()).map_err(|_| ErroresPersonalizados::ErrorArchivo)?; 
-        
-        let mut libros_deserializados: HashMap<u32, Libro>  = serde_json::from_reader(file)
-            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-
-        //Modify the specific field.
-        if let Some(libro) = libros_deserializados.get_mut(&isbn.clone()) {
-            libro.copias_disponiles = nuevas_copias;
-        } else {
-            return Err(ErroresPersonalizados::LibroNoEncontrado);
-        }
-
-        //Serialize the updated data structure back into JSON format.
-
-        let file = File::create(self.archivo_libros.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-        serde_json::to_writer(file, &libros_deserializados).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-        Ok(())
-    }
-
-    pub fn modificar_campo_json_prestmo(&mut self, estado: &EstadoPrestamo, cliente: &Cliente, isbn: &u32) -> Result<(), ErroresPersonalizados> {
-        //Open the json file.
-        
-        let file = File::open(self.archivo_prestamos.clone()).map_err(|_| ErroresPersonalizados::ErrorArchivo)?; 
-        
-        let mut prestamos_deserializados: Vec<Prestamo>  = serde_json::from_reader(file)
-            .map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-
-        //Modify the specific field.
-        for prestamo in prestamos_deserializados.iter_mut() {
-            if compare_clientes(&prestamo.cliente, &cliente) && prestamo.isbn_libro == isbn.clone() {
-                prestamo.estado = estado.clone();
-                break; //Si encontré el cliente no hay necesidad de seguir buscando.
-            }
-        }
-
-        //Serialize the updated data structure back into JSON format.
-
-        let file = File::create(self.archivo_prestamos.clone()).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-        serde_json::to_writer(file, &prestamos_deserializados).map_err(|e| ErroresPersonalizados::ErrorArchivo)?;
-
-        Ok(())
-    }
 
     fn decrementar_cantidad_copias (&mut self, libro: &Libro) -> Result<(), ErroresPersonalizados> {
         let (isbn, copias) = {
@@ -172,7 +161,7 @@ impl Biblioteca {
             }
         }; // Mutable borrow ends here
         
-        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto? si
+        self.cargar_al_archivo_libros()?; 
         Ok(())
     }
 
@@ -186,7 +175,7 @@ impl Biblioteca {
             }
         }; // Mutable borrow ends here
         
-        self.modificar_campo_json_libro(isbn, copias); //Debería hacer que se propague el result de esto?
+        self.cargar_al_archivo_libros()?; 
         Ok(())
     }
 
@@ -234,8 +223,8 @@ impl Biblioteca {
 
         //Mod arch libro (copias)
         if updated_book.clone().is_some() {
-            self.modificar_campo_json_libro(updated_book.clone().unwrap().isbn.clone(), updated_book.clone().unwrap().copias_disponiles.clone()); 
-            self.cargar_al_archivo_prestamos();
+            self.cargar_al_archivo_libros()?; 
+            self.cargar_al_archivo_prestamos()?;
         }
 
         Ok(())
@@ -304,11 +293,11 @@ impl Biblioteca {
 
         //Mod arch libro (copias)
         if updated_book.clone().is_some() {
-            self.modificar_campo_json_libro(updated_book.clone().unwrap().isbn.clone(), updated_book.clone().unwrap().copias_disponiles.clone()); 
+            self.cargar_al_archivo_libros()?; 
             
             //Mod arch prest.
             if updated_loan.clone().is_some() {
-                self.modificar_campo_json_prestmo(&updated_loan.clone().unwrap().estado, &updated_loan.clone().unwrap().cliente, &updated_book.clone().unwrap().isbn);
+                self.cargar_al_archivo_prestamos()?;
             }
         }
         Ok(())
@@ -342,9 +331,10 @@ mod test {
             archivo_libros: path_books.into(),
             archivo_prestamos: path_prestamos.into(),
         };
+
     
         //Insertar libro.
-        biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.libros.insert(libro.isbn, libro.clone());        
         let copias = biblioteca.obtener_cantidad_copias(&libro);
         assert_eq!(copias, 7);
     
@@ -924,7 +914,6 @@ mod test {
 
         biblioteca.libros.insert(libro.isbn, libro.clone());
         biblioteca.libros.insert(libro1.isbn, libro1.clone());
-        biblioteca.cargar_al_archivo_libros();
         
         biblioteca.incrementar_cantidad_copias(&libro);
 
@@ -1042,5 +1031,45 @@ mod test {
         assert_eq!(copias_restantes, libro.copias_disponiles - 1);
 
         //El archivo de libros y de préstamos se modifica. Ok.
+    }
+
+    #[test]
+    fn test_crear_biblioteca() {
+        let path_books = "src/tp05/archivo_libros.txt";
+        let path_prestamos = "src/tp05/archivo_prestamos.txt";
+        let mut biblioteca = Biblioteca::new("nombre".to_string(), "direccion".to_string(), String::from(path_books), String::from(path_prestamos));
+        //Ok. Crea ambos archivos vacíos.
+    }
+
+    #[test]
+    fn test_archivos_okay() {
+        let path_books = "src/tp05/archivo_libros.txt";
+        let path_prestamos = "src/tp05/archivo_prestamos.txt";
+        let mut biblioteca = Biblioteca::new("nombre".to_string(), "direccion".to_string(), String::from(path_books), String::from(path_prestamos));
+        
+        let mut libro = Libro {
+            isbn: 100,
+            titulo: "Test Libro".to_string(),
+            copias_disponiles: 7,
+            autor: "Autor X".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Novela,
+        };
+
+        let mut libro1 = Libro {
+            isbn: 200,
+            titulo: "Test Libro".to_string(),
+            copias_disponiles: 7,
+            autor: "Autor X".to_string(),
+            numero_paginas: 200,
+            genero: Genero::Novela,
+        };
+
+        biblioteca.libros.insert(libro.isbn, libro.clone());
+        biblioteca.libros.insert(libro1.isbn, libro1.clone());
+
+        biblioteca.cargar_al_archivo_libros(); //Ok.
+
+        biblioteca.incrementar_cantidad_copias(&libro); //Ok. El archivo se modifica con el estado actual del libro.
     }
 }
