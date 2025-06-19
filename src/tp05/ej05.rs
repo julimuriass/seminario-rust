@@ -215,6 +215,7 @@ impl Usuario {
 
 enum ErroresPersonalizados {
     ErrorArchivo,
+    UsuarioExistente,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct StreamingRust {
@@ -227,10 +228,21 @@ impl StreamingRust {
 
     pub fn crear_plataforma(archivo_usuarios_suscripciones: String) -> StreamingRust {
         let path = PathBuf::from(archivo_usuarios_suscripciones);
-        StreamingRust {
+        let plataforma = StreamingRust {
             usuarios: Vec::new(),
             archivo_usuarios_suscripciones: path,
-        }
+        };
+
+        plataforma.inicializar_archivo();
+        plataforma
+    }
+
+    fn inicializar_archivo(&self) -> Result<(), ErroresPersonalizados> {
+        let file = File::create(&self.archivo_usuarios_suscripciones)
+            .map_err(|_| ErroresPersonalizados::ErrorArchivo)?;
+
+        serde_json::to_writer_pretty(file, &self.archivo_usuarios_suscripciones); //Serialize the data structure (La veterinaria).
+        Ok(())
     }
 
     fn cargar_usuario_al_archivo(&mut self, usuario: &Usuario) -> Result<(), ErroresPersonalizados> {
@@ -262,7 +274,7 @@ impl StreamingRust {
         Ok(())
     }
 
-    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
+    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> Result<(), ErroresPersonalizados> {
         
         let usuario = Usuario {
             id: id,
@@ -274,10 +286,17 @@ impl StreamingRust {
             email: email,
         };
         //chequear que el usuario no exista.
+        if let user_existe = self.usuarios.iter().find(|u| u.id == id) {
+            return Err(ErroresPersonalizados::UsuarioExistente);
+        }
+        
+        
         self.usuarios.push(usuario.clone());
 
         //Append al archivo de suscripciones.
-        self.cargar_usuario_al_archivo(&usuario.clone());
+        self.cargar_usuario_al_archivo(&usuario.clone())?;
+
+        Ok(())
     }
 
     pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {

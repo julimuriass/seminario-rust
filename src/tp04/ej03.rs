@@ -219,7 +219,7 @@ impl StreamingRust {
         }
     }
 
-    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) {
+    pub fn crear_usuario(&mut self, suscripcion: &Suscripcion, medio_pago: &MedioPago, id: u32, username: String, nombre: String, apellido: String, email: String) -> bool {
         let usuario = Usuario {
             id: id,
             suscripciones: vec![suscripcion.clone()],
@@ -230,7 +230,13 @@ impl StreamingRust {
             email: email,
         };
 
+
+        if let user_existe = self.usuarios.iter().find(|u| u.id == id) {
+            return false;
+        }
+        
         self.usuarios.push(usuario);
+        true
     }
 
     pub fn upgrade_suscripcion(&mut self, usuario: &mut Usuario) {
