@@ -74,7 +74,7 @@ struct VentaProducto {
 
 #[derive(Clone, Debug)]
 struct Venta {
-    fecha: String,
+    fecha: String, //Día/mes/año.
     cliente: Cliente,
     vendedor: Vendedor,
     productos: Vec<VentaProducto>,
@@ -90,10 +90,26 @@ enum MedioPago {
 }
 
 #[derive(Clone, Debug)]
+struct VentaInforme {
+    fecha: String,
+    productos: Vec<VentaProducto>,
+    medio_pago: MedioPago,
+    monto_final: f64,
+}
+
+
+#[derive(Clone, Debug)]
+struct Informe {
+    vendedor: Vendedor,
+    ventas: Option<Vec<VentaInforme>>,
+}
+
+#[derive(Clone, Debug)]
 struct SistemaVentas {
     ventas: Vec<Venta>,
     categorias_descuento: Vec<Categoria>,
     porcentajes_descuento: Vec<(Categoria, f64)>,
+    informe: Informe,
 }
 
 struct ReportePorCategoria {
@@ -225,16 +241,75 @@ impl SistemaVentas {
          };
          
          reporte
-    }
+    }     
+}
 
+impl SistemaVentas { //Entregable 2
+    pub fn get_historial_ventas(id: id_vendedor, categoria: Categoria) -> Option<Vec<VentaInforme>> {
 
-        
+        /*
+        Busco al vendedor en mi sistema de ventas. 
+        Una vez encontrado:
+            Si no tiene ventas hechas -> retorno un None,
+            Si no tiene ventas con al menos un producto de la categoría dada -> retorno un None,
+            Si tiene ventas con al menos un producto de la categoría dada -> retorno un Some(vec con las ventas).
+         */
+
+        //Buscar en el vector de ventas del sistema de ventas, las ventas que tengan al vendedor con id_vendedor y la categoría de producto.
+        //Si no hay ventas, retornar None.
+        //Si hay ventas, retornar Some(vec con las ventas ordenadas).
+
+        let mut ventas_encontradas:Vec<Venta> = Vec::new();
+
+        for venta in self.ventas.iter() {
+            if venta.vendedor.legajo == id_vendedor && venta.productos.iter().any(|p| p.producto.categoria == categoria) {
+                ventaInforme = VentaInforme {
+                    fecha: venta.fecha.clone(),
+                    productos: venta.productos.clone(),
+                    medio_pago: venta.medio_pago.clone(),
+                    monto_final: self.precio_final_venta(venta),
+                };
+                ventas_encontradas.push(ventaInforme.clone());
+            }
+        }
+
+        if ventas_encontradas.is_empty() {
+            //Actualizo el campo informe en mi struct del sistema.
+            self.informe = Informe {
+                vendedor: Vendedor { datos: DatosPersona { nombre: String::new(), apellido: String::new(), direccion: String::new(), dni: 0 }, legajo: id_vendedor, antiguedad: 0, salario: F64Wrapper(0.0) },
+                ventas: None,
+            };
+
+            None
+        } else {
+            //Ordenar las ventas encontradas por fecha.
+            //ventas_encontradas.sort_by(|a, b| a.fecha.cmp(&b.fecha));
+            //usar una funcion auxiliar que me permita comparar y ordenar las fechas usando el criterio en el que están (día, mes, año)
+
+            //Actualizo el campo informe en mi struct del sistema.
+            self.informe = Informe {
+                vendedor: Vendedor { datos: DatosPersona { nombre: String::new(), apellido: String::new(), direccion: String::new(), dni: 0 }, legajo: id_vendedor, antiguedad: 0, salario: F64Wrapper(0.0) },
+                ventas: Some(ventas_encontradas.clone()),
+            };
+
+            Some(ventas_encontradas)
+        }
+    } 
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
+
+    //Agregar los tests del entregable 2.
+    //test vendedor con ventas que cumplan.
+    //test vendedor con ventas que no cumplan.
+    //test vendedor sin ventas.
+    //test para ver si se actualiza correctamente el campo del struct sistema.
+    //test para ver si se ordenan las ventas por fecha.
+    //test para mi función auxiliar que compara y ordena las fechas.
+    //test para ver si se retorna lo que se tiene que retornar (un none o un some con las ventas correctas y ordenadas.)
 
     #[test]
     fn test_crear_venta() {
