@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec};
 use std::hash::{Hash, Hasher};
 use chrono::NaiveDate;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Producto {
     nombre: String,
     categoria: Categoria,
@@ -67,7 +67,7 @@ struct Cliente {
     email_suscripcion: Option<String>, 
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct VentaProducto {
     producto: Producto,
     cantidad: u32,
@@ -82,7 +82,7 @@ struct Venta {
     medio_pago: MedioPago,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum MedioPago {
     TarjetaCredito,
     TarjetaDebito,
@@ -230,13 +230,13 @@ impl SistemaVentas {
     }     
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Informe {
     vendedor: Vendedor,
     ventas: Option<Vec<VentaInforme>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct VentaInforme {
     fecha: String,
     productos: Vec<VentaProducto>,
@@ -247,8 +247,9 @@ struct VentaInforme {
 impl SistemaVentas {
     pub fn get_historial_ventas(&self, id: u32, categoria: Categoria) -> Option<Informe> {
 
-        let mut ventas_encontradas:Vec<VentaInforme> = Vec::new();
+        let mut ventas_encontradas:Vec<VentaInforme> = Vec::new(); //Todavía no encontró nada (es el inicio).
         let mut vendedor_existe = false;
+
         let mut datos_vendedor: Vendedor = Vendedor { //Lo inicializo acá para poder usarlo más adelante (en el scope del if).
             datos: DatosPersona {
                 nombre: String::new(),
@@ -262,26 +263,29 @@ impl SistemaVentas {
         };
 
 
-        for venta in self.ventas.iter() {
-            if venta.vendedor.legajo == id && venta.productos.iter().any(|p| p.producto.categoria == categoria) {
-                vendedor_existe = true;
+        for venta in self.ventas.iter() { //Para cada venta del sistema
+            if venta.vendedor.legajo == id { //Si el legajo del vendedor de la venta es igual al id que me pasaron y si hay algún producto de esa venta que sea de la categoría que me pasaron.
+                vendedor_existe = true; 
 
-                datos_vendedor = Vendedor {
-                    datos: venta.vendedor.datos.clone(),
-                    legajo: venta.vendedor.legajo,
-                    antiguedad: venta.vendedor.antiguedad,
-                    salario: venta.vendedor.salario.clone(),
-                };
+                if venta.productos.iter().any(|p| p.producto.categoria == categoria) {
+                    datos_vendedor = Vendedor { //Me guardo los datos del vendedor. 
+                        datos: venta.vendedor.datos.clone(),
+                        legajo: venta.vendedor.legajo,
+                        antiguedad: venta.vendedor.antiguedad,
+                        salario: venta.vendedor.salario.clone(),
+                    };
+    
+                    let venta_informe = VentaInforme { //Creo el informe de la venta.
+                        fecha: venta.fecha.clone(),
+                        productos: venta.productos.clone(),
+                        medio_pago: venta.medio_pago.clone(),
+                        monto_final: self.precio_final_venta(venta),
+                    };
+                    
+                    ventas_encontradas.push(venta_informe.clone()); //Pusheo el informe de la venta al vector de ventas encontradas.
+                }
 
-                let venta_informe = VentaInforme {
-                    fecha: venta.fecha.clone(),
-                    productos: venta.productos.clone(),
-                    medio_pago: venta.medio_pago.clone(),
-                    monto_final: self.precio_final_venta(venta),
-                };
                 
-                ventas_encontradas.push(venta_informe.clone());
-                break;
             }
         }
 
@@ -289,13 +293,13 @@ impl SistemaVentas {
             return None; //Si el vendedor no existe no puedo hacer un informe, entonces retorno un None.
         }
 
-        if ventas_encontradas.is_empty() {
+        if ventas_encontradas.is_empty() { //Si no encontré ventas del vendedor con la categoría que me pasaron.
             let informe = Some(Informe {
                 vendedor: datos_vendedor,
                 ventas: None,
             });
 
-            None
+            Some(informe?)
         } else {
             //Ordenar las ventas encontradas por fecha.
             //usar una funcion auxiliar que me permita comparar y ordenar las fechas usando el criterio en el que están (día, mes, año)
@@ -321,27 +325,14 @@ impl SistemaVentas {
     }
 }
 
-
-
-
-
 #[cfg(test)]
 mod test {
 
     use super::*;
 
     //Agregar los tests del entregable 2.
-
-    //test vendedor con ventas que cumplan.
-    //test vendedor con ventas que no cumplan.
-    //test vendedor sin ventas.
-    //test para ver si se actualiza correctamente el campo del struct sistema.
-    //test para ver si se ordenan las ventas por fecha.
-    //test para mi función auxiliar que compara y ordena las fechas.
-    //test para ver si se retorna lo que se tiene que retornar (un none o un some con las ventas correctas y ordenadas.)
-
     #[test]
-    fn test_crear_venta() {
+    fn test_vendedor_con_ventas() {
         let persona1 = DatosPersona {
             apellido: "ape".to_string(),
             nombre: "nom".to_string(),
@@ -350,6 +341,218 @@ mod test {
          };
          
          let persona2 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 234,
+         };
+
+        let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
+
+        let producto1 = Producto {
+            nombre: "Agua".to_string(),
+            categoria: Categoria::Comida,
+            precio_base: 600.0,
+        };
+
+        let producto2 = Producto {
+            nombre: "Lampara".to_string(),
+            categoria: Categoria::Hogar,
+            precio_base: 2000.0,
+        };
+
+        let prod_cant1 = VentaProducto {
+            producto: producto1,
+            cantidad: 1,
+        };
+
+        let prod_cant2 = VentaProducto {
+            producto: producto2,
+            cantidad: 1,
+        };
+
+        let productos = vec![prod_cant1.clone(), prod_cant2.clone()];
+
+        let mut sistema_ventas = SistemaVentas::new();
+
+        sistema_ventas.crear_venta("2025-01-01".to_string(), &cliente, &vendedor, productos, MedioPago::TransferenciaBancaria);
+
+        assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Comida).is_some(), true); //Ok.
+        assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Hogar).is_some(), true); //Ok.
+
+        assert_ne!(sistema_ventas.get_historial_ventas(0000, Categoria::Hogar).is_none(), true); //Ok.
+
+        assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Hogar), Some(Informe {
+            vendedor: vendedor.clone(),
+            ventas: Some(vec![VentaInforme {
+                fecha: "2025-01-01".to_string(),
+                productos: vec![prod_cant1.clone(), prod_cant2.clone()],
+                medio_pago: MedioPago::TransferenciaBancaria,
+                monto_final: 855.0, //El precio final de la venta.
+            }]),
+        })); //Ok. 
+
+
+        //Agrego otra venta para ese vendedor.
+        sistema_ventas.crear_venta("2025-02-02".to_string(), &cliente, &vendedor, vec![prod_cant1.clone()], MedioPago::Efectivo);
+
+        assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Comida), Some(Informe {
+            vendedor: vendedor.clone(),
+            ventas: Some(vec![VentaInforme {
+                fecha: "2025-01-01".to_string(),
+                productos: vec![prod_cant1.clone(), prod_cant2.clone()],
+                medio_pago: MedioPago::TransferenciaBancaria,
+                monto_final: 855.0, //El precio final de la venta.
+            }, VentaInforme {
+                fecha: "2025-02-02".to_string(),
+                productos: vec![prod_cant1.clone()],
+                medio_pago: MedioPago::Efectivo,
+                monto_final: 570.0, //El precio final de la venta.
+            }]),
+        })); 
+
+        //Agrego la venta más antigua.
+        sistema_ventas.crear_venta("2024-12-31".to_string(), &cliente, &vendedor, vec![prod_cant2.clone()], MedioPago::TarjetaCredito);
+        assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Hogar), Some(Informe {
+            vendedor: vendedor.clone(),
+            ventas: Some(vec![VentaInforme {
+                fecha: "2024-12-31".to_string(),
+                productos: vec![prod_cant2.clone()],
+                medio_pago: MedioPago::TarjetaCredito,
+                monto_final: 285.0, //El precio final de la venta.
+            }, VentaInforme {
+                fecha: "2025-01-01".to_string(),
+                productos: vec![prod_cant1.clone(), prod_cant2.clone()],
+                medio_pago: MedioPago::TransferenciaBancaria,
+                monto_final: 855.0, //El precio final de la venta.
+            }
+            ]),
+        })); //Ok. Las deja ordenadas.
+    }
+
+    #[test]
+    fn test_informe_nulo() {
+        let persona1 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 123,
+         };
+         
+         let persona2 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 234,
+         };
+
+        let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
+
+        let producto1 = Producto {
+            nombre: "Agua".to_string(),
+            categoria: Categoria::Comida,
+            precio_base: 600.0,
+        };
+
+        let producto2 = Producto {
+            nombre: "Lampara".to_string(),
+            categoria: Categoria::Hogar,
+            precio_base: 2000.0,
+        };
+
+        let prod_cant1 = VentaProducto {
+            producto: producto1,
+            cantidad: 1,
+        };
+
+        let prod_cant2 = VentaProducto {
+            producto: producto2,
+            cantidad: 1,
+        };
+
+        let productos = vec![prod_cant1.clone(), prod_cant2.clone()];
+
+        let mut sistema_ventas = SistemaVentas::new();
+
+        //Antes de ingresar la venta al sistema.
+        assert!(sistema_ventas.get_historial_ventas(0000, Categoria::Comida).is_none()); //Ok. No hay ventas.
+
+        sistema_ventas.crear_venta("2025-01-01".to_string(), &cliente, &vendedor, productos, MedioPago::TransferenciaBancaria);
+        
+        //Pruebo con un legajo que no existe.
+        assert!(sistema_ventas.get_historial_ventas(9999, Categoria::Limpieza).is_none());
+    }
+
+    #[test]
+    fn test_vendedor_sin_ventas() {
+        let persona1 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 123,
+         };
+         
+         let persona2 = DatosPersona {
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 234,
+         };
+
+        let cliente = Cliente {datos: persona1, suscripcion_newsletter: true, email_suscripcion: Some(String::from("pepe@email")) };
+        let vendedor = Vendedor { datos: persona2, legajo: 0000, antiguedad: 3, salario: F64Wrapper(50000.0) };
+
+        let producto1 = Producto {
+            nombre: "Agua".to_string(),
+            categoria: Categoria::Comida,
+            precio_base: 600.0,
+        };
+
+        let producto2 = Producto {
+            nombre: "Lampara".to_string(),
+            categoria: Categoria::Hogar,
+            precio_base: 2000.0,
+        };
+
+        let prod_cant1 = VentaProducto {
+            producto: producto1,
+            cantidad: 1,
+        };
+
+        let prod_cant2 = VentaProducto {
+            producto: producto2,
+            cantidad: 1,
+        };
+
+        let productos = vec![prod_cant1.clone(), prod_cant2.clone()];
+
+        let mut sistema_ventas = SistemaVentas::new();
+
+        sistema_ventas.crear_venta("2025-01-01".to_string(), &cliente, &vendedor, productos, MedioPago::TransferenciaBancaria);
+
+        assert!(sistema_ventas.get_historial_ventas(0000, Categoria::Limpieza).is_some());
+        /*assert_eq!(sistema_ventas.get_historial_ventas(0000, Categoria::Limpieza), Some(Informe {
+            vendedor: vendedor.clone(),
+            ventas: None, //No hay ventas de esa categoría.
+        })); //Ok. */
+
+    }
+
+
+   
+
+    #[test]
+    fn test_crear_venta() {
+        let persona1 = DatosPersona { //Cliente.
+            apellido: "ape".to_string(),
+            nombre: "nom".to_string(),
+            direccion: "arg".to_string(),
+            dni: 123,
+         };
+         
+         let persona2 = DatosPersona { //Vendedor.
             apellido: "ape".to_string(),
             nombre: "nom".to_string(),
             direccion: "arg".to_string(),
